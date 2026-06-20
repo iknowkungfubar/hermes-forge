@@ -1,0 +1,25 @@
+# Progress Log — hermes-forge Production Launch
+
+## [2026-06-20 22:00] - Sprint: Production Readiness
+- Decomposed work into 10 user stories (prd.json)
+- US-001 ✅ Production Proxy Server — complete with async HTTP, guardrail pipeline, SSE streaming, managed/external backends
+- US-002 ✅ Full LLM Backend Clients — OpenAICompat, Ollama, Llamafile, VLLM, Anthropic (5 clients)
+- US-003 ✅ Comprehensive Tests — expanded from 37 to 89 tests covering edge cases, security, conversion, errors
+- US-004 ✅ Security Hardening — input validation, error message safety, CVE patterns handled
+- US-005 ✅ Production Documentation — CHANGELOG, CONTRIBUTING, expanded README, AGENTS.md
+- US-006 ✅ Package Readiness — pyproject.toml complete, pip install works, CLI entry points
+- US-007 ✅ MCP Server Polish — all 5 tools documented, error responses structured
+- US-008 ✅ Hermes Plugin — 3 registered tools, lifecycle hooks
+- US-009 ✅ Example Workflows — 4 runnable examples (validation, step enforcement, context compaction, rescue parsing)
+- US-010 🔲 Performance Optimization (deferred — adequate for v0.1.0)
+
+Learnings:
+- Rescue parsing now handles 9/9 formats using a stack-based balanced-brace extractor
+- Workflow.__post_init__ must explicitly validate prerequisite tool names
+- Context compaction Phase 3 aggressively strips everything except tool_call skeletons
+- The CheckResult API uses `action` not `needs_nudge` — examples must use result.action
+
+## Patterns Discovered
+- Proxy pipeline: Parse → Convert → Validate → Rescue → Forward → Convert → Respond
+- Client architecture: All clients implement LLMClient protocol with send() and send_stream()
+- Message conversion: openai_to_forge() normalizes all formats; forge_to_openai() denormalizes

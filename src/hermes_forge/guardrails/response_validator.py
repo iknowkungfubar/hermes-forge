@@ -13,7 +13,6 @@ from typing import Any
 from hermes_forge.core.workflow import LLMResponse, TextResponse, ToolCall
 from hermes_forge.guardrails.nudge import Nudge
 
-# Default retry nudge for bare text responses
 _DEFAULT_RETRY_NUDGE = (
     "Your response did not include valid tool calls. "
     "Please respond with a JSON tool call using the available tools."
@@ -33,7 +32,7 @@ class ResponseValidator:
     """Validates and optionally rescues LLM responses.
 
     Checks:
-    1. Is it a list[ToolCall] or TextResponse?
+    1. Is it list[ToolCall] or TextResponse?
     2. If list[ToolCall]: are tool names valid? Are args valid dicts?
     3. If TextResponse: attempt rescue parsing (if enabled), else retry.
     """
@@ -49,15 +48,9 @@ class ResponseValidator:
         self._retry_nudge_fn = retry_nudge_fn
 
     def validate(self, response: LLMResponse) -> ValidationResult:
-        """Validate an LLM response.
-
-        Returns a ValidationResult. If needs_retry is True, inject the
-        nudge and call the LLM again.
-        """
         if isinstance(response, TextResponse):
             return self._handle_text(response)
 
-        # Must be a list[ToolCall]
         if not isinstance(response, list):
             return ValidationResult(
                 needs_retry=True,
@@ -73,8 +66,6 @@ class ResponseValidator:
                     nudge=Nudge("retry", _DEFAULT_RETRY_NUDGE),
                     raw_response=str(response),
                 )
-
-            # Check tool name
             if tc.tool not in self._tool_names:
                 nudge_content = (
                     f"Unknown tool '{tc.tool}'. Available tools: "
@@ -85,8 +76,6 @@ class ResponseValidator:
                     nudge=Nudge("unknown_tool", nudge_content),
                     raw_response=str(response),
                 )
-
-            # Check args shape
             if not isinstance(tc.args, dict):
                 nudge_content = (
                     f"Tool '{tc.tool}' was called with malformed arguments "
@@ -98,7 +87,6 @@ class ResponseValidator:
                     nudge=Nudge("malformed_args", nudge_content),
                     raw_response=str(response),
                 )
-
             validated.append(tc)
 
         if not validated:
@@ -110,13 +98,11 @@ class ResponseValidator:
         return ValidationResult(tool_calls=validated)
 
     def _handle_text(self, response: TextResponse) -> ValidationResult:
-        """Handle a TextResponse — attempt rescue parsing or return retry."""
         if self._rescue_enabled:
             rescued = rescue_tool_call(response.content, self._tool_names)
             if rescued:
                 return ValidationResult(tool_calls=rescued)
 
-        # Build nudge
         if self._retry_nudge_fn:
             content = self._retry_nudge_fn(response.content)
         else:
@@ -129,6 +115,49 @@ class ResponseValidator:
         )
 
 
+def _extract_outermost_json(text: str) -> str | None:
+    """Extract the outermost balanced JSON object or array from text.
+
+    Uses a stack-based approach to handle nested braces.
+    """
+    start = -1
+    depth = 0
+    in_string = False
+    escape = False
+
+    for i, ch in enumerate(text):
+        if escape:
+            escape = False
+            continue
+        if ch == '\\' and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+
+        if ch == '{':
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0 and start >= 0:
+                return text[start:i+1]
+        elif ch == '[':
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == ']':
+            depth -= 1
+            if depth == 0 and start >= 0:
+                return text[start:i+1]
+
+    return None
+
+
 def rescue_tool_call(text: str, valid_tools: set[str]) -> list[ToolCall] | None:
     """Attempt to rescue malformed tool calls from text responses.
 
@@ -136,17 +165,16 @@ def rescue_tool_call(text: str, valid_tools: set[str]) -> list[ToolCall] | None:
     1. JSON in a fenced code block
     2. Mistral [TOOL_CALLS] format
     3. Qwen <tool_call> XML
-    4. Naked JSON
+    4. Naked JSON (balanced braces)
     """
     # Strategy 1: JSON in code fence
-    json_match = re.search(r"```(?:json)?\s*(\{.+?\}|\[.+?\])\s*```", text, re.DOTALL)
+    json_match = re.search(r"```(?:json)?\s*(.+?)\s*```", text, re.DOTALL)
     if json_match:
         result = _parse_json_tool_call(json_match.group(1), valid_tools)
         if result:
             return result
 
     # Strategy 2: Mistral [TOOL_CALLS] format
-    # e.g. [TOOL_CALLS] tool_name({"key": "value"})
     mistral_match = re.search(
         r"\[TOOL_CALLS\]\s*(\w+)\s*\((\{.*?\})\)", text, re.DOTALL
     )
@@ -177,10 +205,10 @@ def rescue_tool_call(text: str, valid_tools: set[str]) -> list[ToolCall] | None:
                     pass
             return [ToolCall(tool=tool_name, args={})]
 
-    # Strategy 4: Naked JSON
-    naked_match = re.search(r"\{[^{}]+\{.*?\}|^\{.*?\}$", text, re.DOTALL)
-    if naked_match:
-        result = _parse_json_tool_call(naked_match.group(0), valid_tools)
+    # Strategy 4: Naked JSON with balanced braces
+    outermost = _extract_outermost_json(text)
+    if outermost:
+        result = _parse_json_tool_call(outermost, valid_tools)
         if result:
             return result
 
@@ -195,9 +223,23 @@ def _parse_json_tool_call(json_str: str, valid_tools: set[str]) -> list[ToolCall
         return None
 
     if isinstance(data, dict):
-        name = data.get("name") or data.get("tool") or data.get("function", {}).get("name")
+        # OpenAI-style: {"name": "...", "arguments": {...}}
+        name = data.get("name") or data.get("tool") or ""
+        if not name and "function" in data:
+            # OpenAI function-call format: {"function": {"name": "...", "arguments": {...}}}
+            name = data["function"].get("name", "")
+            if name in valid_tools:
+                args = data["function"].get("arguments", {})
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except json.JSONDecodeError:
+                        pass
+                if isinstance(args, dict):
+                    return [ToolCall(tool=name, args=args)]
+
         if name and name in valid_tools:
-            args = data.get("arguments") or data.get("args") or data.get("parameters") or data.get("function", {}).get("arguments", {})
+            args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
             if isinstance(args, str):
                 try:
                     args = json.loads(args)
@@ -205,11 +247,12 @@ def _parse_json_tool_call(json_str: str, valid_tools: set[str]) -> list[ToolCall
                     pass
             if isinstance(args, dict):
                 return [ToolCall(tool=name, args=args)]
+
     elif isinstance(data, list):
         result: list[ToolCall] = []
         for item in data:
             if isinstance(item, dict):
-                name = item.get("name") or item.get("tool") or item.get("function", {}).get("name")
+                name = item.get("name") or item.get("tool") or item.get("function", {}).get("name", "")
                 if name and name in valid_tools:
                     args = item.get("arguments") or item.get("args") or item.get("function", {}).get("arguments", {})
                     if isinstance(args, str):
@@ -220,4 +263,5 @@ def _parse_json_tool_call(json_str: str, valid_tools: set[str]) -> list[ToolCall
                     if isinstance(args, dict):
                         result.append(ToolCall(tool=name, args=args))
         return result if result else None
+
     return None

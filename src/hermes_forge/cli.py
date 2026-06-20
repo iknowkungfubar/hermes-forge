@@ -29,6 +29,21 @@ def main() -> None:
     serve.add_argument("--port", type=int, default=9876, help="Port to bind (default: 9876)")
     serve.add_argument("--transport", choices=["stdio", "sse"], default="stdio", help="MCP transport (default: stdio)")
 
+    # proxy command
+    proxy = sub.add_parser("proxy", help="Start the guardrails proxy server")
+    proxy.add_argument("--backend-url", help="URL of an externally managed backend")
+    proxy.add_argument("--backend", choices=["llamaserver", "llamafile", "ollama", "vllm"], help="Backend type")
+    proxy.add_argument("--model", help="Model name (ollama)")
+    proxy.add_argument("--gguf", help="Path to GGUF file")
+    proxy.add_argument("--model-path", help="Model directory (vllm)")
+    proxy.add_argument("--host", default="127.0.0.1", help="Listen host (default: 127.0.0.1)")
+    proxy.add_argument("--port", type=int, default=8081, help="Listen port (default: 8081)")
+    proxy.add_argument("--max-retries", type=int, default=3, help="Max retries per request")
+    proxy.add_argument("--no-rescue", action="store_true", help="Disable rescue parsing")
+    proxy.add_argument("--inject-respond-tool", action="store_true", help="Inject synthetic respond tool")
+    proxy.add_argument("--budget-tokens", type=int, default=8192, help="Context budget in tokens")
+    proxy.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
+
     args = parser.parse_args()
 
     if args.version:
@@ -43,6 +58,8 @@ def main() -> None:
         _cmd_validate(args)
     elif args.command == "serve":
         _cmd_serve(args)
+    elif args.command == "proxy":
+        _cmd_proxy(args)
     else:
         parser.print_help()
 
@@ -96,6 +113,33 @@ def _cmd_serve(args: argparse.Namespace) -> None:
     except ImportError as e:
         print(f"Cannot start MCP server: {e}", file=sys.stderr)
         print("Install mcp package: pip install mcp", file=sys.stderr)
+        sys.exit(1)
+
+
+def _cmd_proxy(args: argparse.Namespace) -> None:
+    """Start the guardrails proxy server."""
+    try:
+        from hermes_forge.proxy.proxy import ProxyServer
+
+        proxy = ProxyServer(
+            backend_url=args.backend_url,
+            backend=args.backend,
+            model=args.model,
+            gguf=args.gguf,
+            model_path=args.model_path,
+            host=args.host,
+            port=args.port,
+            max_retries=args.max_retries,
+            rescue_enabled=not args.no_rescue,
+            inject_respond_tool=args.inject_respond_tool,
+            budget_tokens=args.budget_tokens,
+        )
+        import logging
+        if args.verbose:
+            logging.basicConfig(level=logging.DEBUG)
+        proxy.start()
+    except ImportError as e:
+        print(f"Cannot start proxy: {e}", file=sys.stderr)
         sys.exit(1)
 
 

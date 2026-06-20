@@ -1,0 +1,175 @@
+{
+  "project": "hermes-forge",
+  "branchName": "feature/production-launch-ready",
+  "description": "Fully build out, test, optimize, and secure the hermes-forge repo for production launch as a developed software product. This covers proxy server, full backend clients, 100+ tests, security hardening, documentation, package readiness, MCP server polish, plugin polish, examples, and performance optimization.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Production Proxy Server",
+      "description": "Implement a working proxy server that sits between any OpenAI-compatible client and LLM backends, applying Forge guardrails transparently. Supports external and managed backends (Ollama, llama.cpp, vLLM).",
+      "acceptanceCriteria": [
+        "Proxy starts with `python -m hermes_forge.proxy_main --backend-url http://localhost:8080`",
+        "Proxy validates tool calls and rescues malformed output",
+        "Proxy supports SSE streaming",
+        "Proxy injects synthetic respond tool when configured",
+        "Proxy handles connection errors gracefully",
+        "Integration test passes with a mock backend"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Most popular Forge feature — must work for launch"
+    },
+    {
+      "id": "US-002",
+      "title": "Full LLM Backend Clients",
+      "description": "Implement LLMClient implementations for all supported backends: Ollama, Llamafile, vLLM, OpenAI-compatible, and Anthropic. Each client normalizes responses to forge Message types and supports streaming.",
+      "acceptanceCriteria": [
+        "OllamaClient supports native function calling and streaming",
+        "LlamafileClient supports native and prompt-injected modes",
+        "VLLMClient handles vLLM's specific model identity requirements",
+        "AnthropicClient supports Anthropic Messages API",
+        "OpenAICompatClient works with any OpenAI-shaped endpoint",
+        "Each client handles errors, timeouts, and reconnection",
+        "Unit tests with mocked HTTP responses"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Comprehensive Test Coverage (100+ tests)",
+      "description": "Expand the test suite from 37 to 100+ tests covering all edge cases, error paths, and integration scenarios.",
+      "acceptanceCriteria": [
+        "100+ total tests across all modules",
+        "Edge case coverage for rescue parsing (empty, malformed, nested, Unicode)",
+        "Step enforcement with multiple tools and complex prerequisites",
+        "Context compaction tiered phases (Phase 1, 2, 3)",
+        "Guardrails facade: fatal exhaustion paths",
+        "Workflow validation: all error conditions",
+        "Error hierarchy: all exception types tested",
+        "CLI: both commands with valid/invalid inputs"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Security Hardening",
+      "description": "Audit and harden the codebase for production: input validation, error handling, environment variable filtering, secret management, rate limiting preparation.",
+      "acceptanceCriteria": [
+        "All user-facing inputs validated and sanitized",
+        "Error messages don't leak internal paths or secrets",
+        "Huge payloads rejected with clear error messages",
+        "JSON parsing guarded against malformed input",
+        "Environment variables filtered for MCP subprocesses (credentials not leaked)",
+        "Timeout protection on all network calls",
+        "Dependency scan shows no known CVEs",
+        "Security.md file documents known concerns"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Production Documentation",
+      "description": "Create comprehensive documentation: API reference, user guide, architecture docs, changelog, contributing guide, and setup instructions.",
+      "acceptanceCriteria": [
+        "README covers install, quick start, configuration, and architecture",
+        "docs/ directory with user guide, API reference, and architecture",
+        "CHANGELOG.md with v0.1.0 entries",
+        "CONTRIBUTING.md with development setup",
+        "All MCP tools documented with input/output schemas",
+        "Setup guide for each backend type",
+        "Troubleshooting section"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Package Readiness & Release Automation",
+      "description": "Prepare for PyPI publishing: setup.py/pyproject.toml polish, version management, release workflow, and pip install verification.",
+      "acceptanceCriteria": [
+        "pip install hermes-forge[dev] works",
+        "pip install hermes-forge[anthropic] works for Anthropic extras",
+        "Release GitHub Action automating PyPI publish on tag",
+        "Version bumped to 0.1.0",
+        "Package classifiers and keywords complete",
+        "pip install from GitHub works: pip install git+https://..."
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "MCP Server Polish & SSE Transport",
+      "description": "Polish the MCP server: implement SSE transport, add health check, improve error codes, add tool descriptions, and validate against MCP spec.",
+      "acceptanceCriteria": [
+        "SSE transport works with Hermes MCP client",
+        "Health check endpoint returns server status",
+        "All tool descriptions are comprehensive and accurate",
+        "Error responses include structured error codes",
+        "Server handles graceful shutdown",
+        "Server works with both npx and python entry points",
+        "Timeout configuration per tool call"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Hermes Plugin Full Compliance",
+      "description": "Bring the Hermes plugin to full compliance with Hermes Agent's plugin API, including proper lifecycle hooks and tool registration.",
+      "acceptanceCriteria": [
+        "Plugin implements all required Hermes plugin lifecycle methods",
+        "Plugin tools appear in Hermes tool list",
+        "Plugin handles configuration through Hermes config",
+        "Plugin state is properly isolated",
+        "Plugin can be enabled/disabled without errors",
+        "Plugin gracefully handles missing dependencies"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Example Workflows & Integration Tests",
+      "description": "Build real-world examples showing each guardrail feature in action, with integration tests that verify end-to-end functionality.",
+      "acceptanceCriteria": [
+        "Example: tool call validation with a multi-tool workflow",
+        "Example: rescue parsing with various malformed inputs",
+        "Example: step enforcement with prerequisites",
+        "Example: context compaction in long-running workflows",
+        "Example: proxy server with mock backend",
+        "Each example has a README and runnable script",
+        "Integration tests (with mock backends) run in CI"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Performance Optimization & Robustness",
+      "description": "Profile and optimize: reduce overhead in guardrail path, add caching for repeated validations, ensure sub-millisecond overhead for common paths.",
+      "acceptanceCriteria": [
+        "ResponseValidator adds < 1ms overhead for valid calls",
+        "Rescue parsing doesn't bottleneck on long text",
+        "Context compaction handles 1000+ message histories",
+        "No excessive memory allocation in hot paths",
+        "Benchmark script in tools/benchmarks/",
+        "All major paths handle concurrent calls safely"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

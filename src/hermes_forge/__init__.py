@@ -75,6 +75,17 @@ from hermes_forge.prompts.nudges import retry_nudge, step_nudge
 # Tools
 from hermes_forge.tools.respond import RESPOND_TOOL_NAME, respond_spec, respond_tool
 
+# Clients
+from hermes_forge.clients.base import ChunkType, LLMClient, StreamChunk, TokenUsage
+from hermes_forge.clients.llamafile import LlamafileClient
+from hermes_forge.clients.ollama import OllamaClient
+from hermes_forge.clients.openai_compat import OpenAICompatClient
+from hermes_forge.clients.vllm import VLLMClient
+from hermes_forge.clients.anthropic import AnthropicClient
+
+# Proxy
+from hermes_forge.proxy.proxy import ProxyServer
+
 # Errors
 from hermes_forge.errors import (
     ForgeError,
@@ -123,6 +134,14 @@ __all__ = [
     "RESPOND_TOOL_NAME",
     "respond_spec",
     "respond_tool",
+    "ChunkType",
+    "LLMClient",
+    "LlamafileClient",
+    "OllamaClient",
+    "OpenAICompatClient",
+    "VLLMClient",
+    "AnthropicClient",
+    "ProxyServer",
     "ForgeError",
     "ToolCallError",
     "ToolExecutionError",

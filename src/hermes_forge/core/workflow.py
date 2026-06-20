@@ -174,6 +174,13 @@ class Workflow:
                 raise ValueError(f"Terminal tool '{tt}' not in tools: {tool_names}")
             if tt in self.required_steps:
                 raise ValueError(f"Terminal tool '{tt}' cannot also be a required step")
+        for key, tool_def in self.tools.items():
+            for prereq in tool_def.prerequisites:
+                prereq_name = prereq if isinstance(prereq, str) else prereq["tool"]
+                if prereq_name not in tool_names:
+                    raise ValueError(
+                        f"Prerequisite '{prereq_name}' for tool '{key}' not in tools: {tool_names}"
+                    )
 
     def build_system_prompt(self, **kwargs: str) -> str:
         return self.system_prompt_template.format(**kwargs)
