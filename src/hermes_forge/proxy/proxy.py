@@ -30,6 +30,39 @@ from hermes_forge.context.strategies import TieredCompact
 from hermes_forge.proxy.handler import RequestHandler
 from hermes_forge.proxy.server import HTTPServer
 
+import re
+
+# Blocked hosts/URLs for SSRF prevention — never forward requests to these
+_SSRF_BLOCKLIST = re.compile(
+    r"(?i)(127\.0\.0\.1|localhost|0\.0\.0\.0|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\."
+    r"|169\.254\.|::1|metadata\.google\.internal|169\.254\.169\.254"
+    r"|100\.100\.100\.(200|201)|100\.127\.(6[4-9]|[7-9]\d|\d{3})\.)"
+)
+
+
+def _validate_backend_url(url: str | None) -> str | None:
+    """Validate a backend URL to prevent SSRF attacks.
+    
+    Returns the validated URL or None if invalid.
+    Raises ValueError with a user-safe message on dangerous URLs.
+    """
+    if url is None:
+        return None
+    
+    # Basic URL structure check
+    if not url.startswith(("http://", "https://")):
+        raise ValueError("backend_url must start with http:// or https://")
+    
+    # Block internal/private IPs and metadata endpoints
+    if _SSRF_BLOCKLIST.search(url):
+        raise ValueError("backend_url points to a blocked internal address")
+    
+    # Limit URL length to prevent abuse
+    if len(url) > 2048:
+        raise ValueError("backend_url exceeds maximum length")
+    
+    return url
+
 logger = logging.getLogger("forge.proxy")
 
 

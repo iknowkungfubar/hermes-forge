@@ -1,0 +1,222 @@
+{
+  "secrets": [
+    {
+      "file": "scripts/security_audit.py",
+      "line": 15,
+      "finding": "GitHub token",
+      "match": "gho_"
+    },
+    {
+      "file": "scripts/security_audit.py",
+      "line": 15,
+      "finding": "GitHub token",
+      "match": "github_pat_"
+    },
+    {
+      "file": "scripts/security_audit.py",
+      "line": 9,
+      "finding": "Local filesystem path leak",
+      "match": "\"/home/turin/"
+    },
+    {
+      "file": "scripts/security_audit.py",
+      "line": 18,
+      "finding": "Local filesystem path leak",
+      "match": "\"/home/turin/"
+    }
+  ],
+  "injections": [
+    {
+      "file": "README.md",
+      "line": 84,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/errors.py",
+      "line": 29,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/errors.py",
+      "line": 45,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/errors.py",
+      "line": 63,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/errors.py",
+      "line": 82,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/errors.py",
+      "line": 100,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/cli.py",
+      "line": 97,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/cli.py",
+      "line": 105,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/core/steps.py",
+      "line": 51,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/core/workflow.py",
+      "line": 43,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/core/workflow.py",
+      "line": 167,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/core/workflow.py",
+      "line": 171,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/core/workflow.py",
+      "line": 174,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/core/workflow.py",
+      "line": 182,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/proxy/handler.py",
+      "line": 167,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/proxy/server.py",
+      "line": 156,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge/proxy/proxy.py",
+      "line": 178,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "src/hermes_forge_plugin/plugin.py",
+      "line": 125,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "tests/unit/verify_rescue.py",
+      "line": 7,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "tests/unit/verify_rescue.py",
+      "line": 14,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "tests/unit/verify_rescue.py",
+      "line": 20,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "tests/unit/verify_rescue.py",
+      "line": 26,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "tests/unit/test_advanced.py",
+      "line": 92,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/01_tool_validation.py",
+      "line": 32,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/01_tool_validation.py",
+      "line": 38,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/01_tool_validation.py",
+      "line": 46,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/01_tool_validation.py",
+      "line": 56,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/04_rescue_parsing.py",
+      "line": 47,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/04_rescue_parsing.py",
+      "line": 54,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/04_rescue_parsing.py",
+      "line": 58,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/03_context_compaction.py",
+      "line": 50,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/03_context_compaction.py",
+      "line": 62,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "examples/03_context_compaction.py",
+      "line": 68,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "scripts/security_audit.py",
+      "line": 23,
+      "finding": "eval() usage"
+    },
+    {
+      "file": "scripts/security_audit.py",
+      "line": 24,
+      "finding": "exec() usage"
+    },
+    {
+      "file": "scripts/security_audit.py",
+      "line": 75,
+      "finding": "Nested f-string (complex injection)"
+    },
+    {
+      "file": "scripts/security_audit.py",
+      "line": 78,
+      "finding": "Nested f-string (complex injection)"
+    }
+  ],
+  "info_leaks": [],
+  "hardcoded_paths": [
+    {
+      "file": "scripts/security_audit.py",
+      "finding": "Contains /home/turin/ path"
+    }
+  ]
+}

@@ -14,6 +14,14 @@ import json
 import logging
 from typing import Any
 
+# Hard limits on tool input sizes to prevent abuse
+_MAX_TOOL_NAME_LENGTH = 256
+_MAX_ARGS_KEYS = 100
+_MAX_TOOL_LIST_LENGTH = 500
+_MAX_TEXT_LENGTH = 100000
+_MAX_MESSAGE_COUNT = 10000
+_MAX_BUDGET_TOKENS = 1048576
+
 logger = logging.getLogger("hermes-forge.mcp")
 
 
@@ -159,18 +167,26 @@ def _serve_stdio() -> None:
         if arguments is None:
             arguments = {}
 
-        if name == "forge_validate_tool_call":
-            return [_validate_tool_call(arguments)]
-        elif name == "forge_rescue_tool_call":
-            return [_rescue_tool_call(arguments)]
-        elif name == "forge_check_step_ordering":
-            return [_check_step_ordering(arguments)]
-        elif name == "forge_estimate_context_budget":
-            return [_estimate_context_budget(arguments)]
-        elif name == "forge_config_workflow":
-            return [_config_workflow(arguments)]
-        else:
-            raise ValueError(f"Unknown tool: {name}")
+        try:
+            if name == "forge_validate_tool_call":
+                return [_validate_tool_call(arguments)]
+            elif name == "forge_rescue_tool_call":
+                return [_rescue_tool_call_safe(arguments)]
+            elif name == "forge_check_step_ordering":
+                return [_check_step_ordering(arguments)]
+            elif name == "forge_estimate_context_budget":
+                return [_estimate_context_budget_safe(arguments)]
+            elif name == "forge_config_workflow":
+                return [_config_workflow(arguments)]
+            else:
+                raise ValueError(f"Unknown tool: {name}")
+        except (ValueError, TypeError) as e:
+            import mcp.types as types
+            return [types.TextContent(type="text", text=json.dumps({"error": str(e)}))]
+        except Exception as e:
+            logger.exception("Unexpected error in MCP tool call")
+            import mcp.types as types
+            return [types.TextContent(type="text", text=json.dumps({"error": "Internal server error"}))]
 
     async def run():
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
@@ -249,6 +265,26 @@ def _rescue_tool_call(args: dict) -> Any:
     )
 
 
+def _rescue_tool_call_safe(args: dict) -> Any:
+    """Wrapper with input validation."""
+    text = args.get("text", "")
+    available_tools = args.get("available_tools", [])
+
+    # Validate input sizes
+    if not isinstance(text, str):
+        raise ValueError("'text' must be a string")
+    if len(text) > _MAX_TEXT_LENGTH:
+        raise ValueError(f"'text' exceeds maximum length of {_MAX_TEXT_LENGTH} characters")
+    if not isinstance(available_tools, list):
+        raise ValueError("'available_tools' must be a list")
+    if len(available_tools) > _MAX_TOOL_LIST_LENGTH:
+        raise ValueError(f"'available_tools' exceeds maximum length of {_MAX_TOOL_LIST_LENGTH}")
+    if any(not isinstance(t, str) or len(t) > _MAX_TOOL_NAME_LENGTH for t in available_tools):
+        raise ValueError(f"Tool names must be strings under {_MAX_TOOL_NAME_LENGTH} characters")
+
+    return _rescue_tool_call(args)
+
+
 def _check_step_ordering(args: dict) -> Any:
     from hermes_forge.guardrails.step_enforcer import StepEnforcer
 
@@ -312,6 +348,23 @@ def _estimate_context_budget(args: dict) -> Any:
             "recommended_compaction_phase": compaction_phase,
         }, indent=2),
     )
+
+
+def _estimate_context_budget_safe(args: dict) -> Any:
+    """Wrapper with input validation."""
+    message_count = args.get("message_count", 0)
+    budget_tokens = args.get("budget_tokens", 8192)
+
+    if not isinstance(message_count, (int, float)) or message_count < 0:
+        raise ValueError("'message_count' must be a non-negative integer")
+    if message_count > _MAX_MESSAGE_COUNT:
+        raise ValueError(f"'message_count' exceeds maximum of {_MAX_MESSAGE_COUNT}")
+    if not isinstance(budget_tokens, (int, float)) or budget_tokens < 1:
+        raise ValueError("'budget_tokens' must be a positive integer")
+    if budget_tokens > _MAX_BUDGET_TOKENS:
+        raise ValueError(f"'budget_tokens' exceeds maximum of {_MAX_BUDGET_TOKENS}")
+
+    return _estimate_context_budget(args)
 
 
 def _config_workflow(args: dict) -> Any:

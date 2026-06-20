@@ -4,6 +4,8 @@ Raw asyncio HTTP server for the Forge proxy.
 Implements a minimal HTTP/1.1 server that serves the OpenAI chat-completions
 API. Handles POST /v1/chat/completions with JSON body, returns JSON responses.
 Streaming support via SSE (text/event-stream).
+
+Security: request body size is limited to prevent memory exhaustion.
 """
 
 from __future__ import annotations
@@ -16,6 +18,12 @@ from typing import Any
 from hermes_forge.proxy.handler import RequestHandler
 
 logger = logging.getLogger("forge.proxy.server")
+
+# Maximum request body size: 10MB
+_MAX_REQUEST_SIZE = 10 * 1024 * 1024
+
+# Maximum header size: 16KB
+_MAX_HEADER_SIZE = 16 * 1024
 
 
 class HTTPServer:
@@ -78,7 +86,7 @@ class HTTPServer:
             try:
                 await self._send_json_response(
                     writer,
-                    {"error": {"message": str(e), "type": "internal_error"}},
+                    {"error": {"message": "Internal server error", "type": "internal_error"}},
                     status=500,
                 )
             except Exception:
@@ -107,21 +115,34 @@ class HTTPServer:
             method = parts[0]
             path = parts[1]
 
-            # Read headers
+            # Path sanitization: block path traversal and unusual paths
+            sanitized_path = path.split("?")[0].split("#")[0]  # strip query/fragment
+            if ".." in sanitized_path or sanitized_path.count("/") > 5:
+                return None
+
+            # Read headers with size limit
             headers: dict[str, str] = {}
+            total_header_size = 0
             while True:
                 header_line = await asyncio.wait_for(
                     reader.readline(), timeout=30
                 )
                 header_str = header_line.decode("utf-8", errors="replace").strip()
+                total_header_size += len(header_line)
+                if total_header_size > _MAX_HEADER_SIZE:
+                    logger.warning("Request headers exceed size limit")
+                    return None
                 if not header_str:
                     break
                 if ":" in header_str:
                     key, value = header_str.split(":", 1)
                     headers[key.strip().lower()] = value.strip()
 
-            # Read body
+            # Read body with size enforcement
             content_length = int(headers.get("content-length", "0"))
+            if content_length > _MAX_REQUEST_SIZE:
+                logger.warning("Request body too large: %d bytes", content_length)
+                return None
             body_bytes = b""
             if content_length > 0:
                 body_bytes = await asyncio.wait_for(

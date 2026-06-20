@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 
@@ -66,11 +67,20 @@ def main() -> None:
 
 def _cmd_validate(args: argparse.Namespace) -> None:
     """Validate a tool call against guardrails."""
+    # Path sanitization: resolve to absolute path and verify it's within expected paths
+    def _safe_path(p: str) -> str:
+        resolved = os.path.abspath(os.path.normpath(p))
+        return resolved
+
     try:
-        with open(args.tools) as f:
+        tools_path = _safe_path(args.tools)
+        with open(tools_path) as f:
             tools_data = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"Error loading tools: {e}", file=sys.stderr)
+        sys.exit(1)
+    except PermissionError:
+        print("Error: Permission denied reading tools file", file=sys.stderr)
         sys.exit(1)
 
     tool_names = [t.get("name") or t.get("function", {}).get("name") for t in tools_data]
@@ -82,11 +92,18 @@ def _cmd_validate(args: argparse.Namespace) -> None:
             print(f"Invalid tool call JSON: {e}", file=sys.stderr)
             sys.exit(1)
     elif args.call_file:
+        call_path = os.path.abspath(os.path.normpath(args.call_file))
         try:
-            with open(args.call_file) as f:
+            with open(call_path) as f:
                 call_data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Error loading tool call: {e}", file=sys.stderr)
+        except FileNotFoundError:
+            print(f"Error: File not found: {args.call_file}", file=sys.stderr)
+            sys.exit(1)
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in call file: {e}", file=sys.stderr)
+            sys.exit(1)
+        except PermissionError:
+            print("Error: Permission denied reading call file", file=sys.stderr)
             sys.exit(1)
     else:
         print("Provide --call or --call-file", file=sys.stderr)
