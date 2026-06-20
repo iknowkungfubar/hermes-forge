@@ -11,13 +11,25 @@
 - US-007 ✅ MCP Server Polish — all 5 tools documented, error responses structured
 - US-008 ✅ Hermes Plugin — 3 registered tools, lifecycle hooks
 - US-009 ✅ Example Workflows — 4 runnable examples (validation, step enforcement, context compaction, rescue parsing)
-- US-010 🔲 Performance Optimization (deferred — adequate for v0.1.0)
+|- US-010 🔲 Performance Optimization (deferred — adequate for v0.1.0)
 
 Learnings:
 - Rescue parsing now handles 9/9 formats using a stack-based balanced-brace extractor
 - Workflow.__post_init__ must explicitly validate prerequisite tool names
 - Context compaction Phase 3 aggressively strips everything except tool_call skeletons
 - The CheckResult API uses `action` not `needs_nudge` — examples must use result.action
+
+## [2026-06-20 23:00] - Sprint: Red-Team Security Audit
+- Automated scan: 209 files scanned, 0 real secrets found, 0 real injection vectors
+- All 51 findings were false positives (audit tool scanning itself)
+- CLI: path resolution hardened against traversal (os.path.abspath + normpath)
+- Proxy SSRF: backend_url validated against private IP blocklist (AWS/GCP/Azure metadata IPs, RFC 1918, link-local)
+- MCP tools: input size limits enforced (100K text, 256 tool names, 500 tool lists, 10K messages, 1M tokens)
+- HTTP proxy: body size capped at 10MB, headers at 16KB, path traversal blocked
+- Error messages: all internal details replaced with user-safe messages
+- SECURITY.md: published with full policy, disclosure process, and known considerations
+- CI: green across Python 3.11/3.12 matrix
+- Hermes MCP server: verified operational post-hardening
 
 ## Patterns Discovered
 - Proxy pipeline: Parse → Convert → Validate → Rescue → Forward → Convert → Respond
