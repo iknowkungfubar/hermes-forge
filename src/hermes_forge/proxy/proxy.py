@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 from hermes_forge.clients.base import LLMClient
-from hermes_forge.clients.anthropic import AnthropicClient
 from hermes_forge.clients.ollama import OllamaClient
 from hermes_forge.clients.openai_compat import OpenAICompatClient
 from hermes_forge.clients.vllm import VLLMClient
@@ -117,6 +116,7 @@ class ProxyServer:
         )
 
         if backend_protocol == "anthropic":
+            from hermes_forge.clients.anthropic import AnthropicClient
             client: LLMClient = AnthropicClient(
                 model=model or "claude-sonnet-4-20250514",
                 base_url=(backend_url or "https://api.anthropic.com/v1").rstrip("/"),

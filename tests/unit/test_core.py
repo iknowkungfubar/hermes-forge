@@ -407,7 +407,7 @@ class TestCLI:
             [sys.executable, "-m", "hermes_forge.cli", "validate",
              "--tools", str(tools_file),
              "--call-file", str(call_file)],
-            capture_output=True, text=True, cwd="/home/turin/hermes-forge",
+            capture_output=True, text=True,
         )
         print(result.stdout, result.stderr)
         assert result.returncode == 0
