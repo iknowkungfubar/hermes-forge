@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Environments
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Pytest
+.pytest_cache/
+
+# Mypy
+.mypy_cache/
+
+# Hermes
+~/.hermes/
