@@ -180,6 +180,10 @@ def _serve_stdio() -> None:
                 InitializationOptions(
                     server_name="hermes-forge",
                     server_version="0.1.0",
+                    capabilities=app.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
                 ),
             )
 
