@@ -1,12 +1,44 @@
 """
-Security audit tool — scans for secrets, injections, path leaks, and CVEs.
+Security audit tool -- scans for secrets, injections, path leaks, and CVEs.
+
+Usage: python scripts/security_audit.py [REPO_PATH]
+
+If REPO_PATH is omitted, uses the git root of the current directory.
 """
+import argparse
 import os
 import re
 import json
+import subprocess
+import sys
 from pathlib import Path
 
-REPO = Path("/home/turin/hermes-forge")
+
+def get_repo_root() -> Path:
+    """Get the git root directory of the current working directory."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True,
+        )
+        return Path(result.stdout.strip())
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return Path.cwd()
+
+
+parser = argparse.ArgumentParser(description="Security audit tool")
+parser.add_argument(
+    "repo_path", nargs="?",
+    help="Path to the repository root (default: auto-detect from git)"
+)
+args = parser.parse_args()
+REPO = Path(args.repo_path).resolve() if args.repo_path else get_repo_root()
+
+# Ensure it's a directory
+if not REPO.is_dir():
+    print(f"Error: {REPO} is not a directory", file=sys.stderr)
+    sys.exit(1)
+print(f"Auditing repository at: {REPO}")
 
 SECRET_PATTERNS = [
     (r'(?i)(api_key|apikey|api[-_]?secret|secret[-_]?key|app[-_]?secret)["\']?\s*[:=]\s*["\'][A-Za-z0-9_\-]{16,}["\']', "Potential API key/secret"),
