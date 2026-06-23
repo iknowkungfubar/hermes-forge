@@ -14,6 +14,8 @@ import json
 import logging
 from typing import Any
 
+from hermes_forge import __version__
+
 # Hard limits on tool input sizes to prevent abuse
 _MAX_TOOL_NAME_LENGTH = 256
 _MAX_ARGS_KEYS = 100
@@ -195,7 +197,7 @@ def _serve_stdio() -> None:
                 write_stream,
                 InitializationOptions(
                     server_name="hermes-forge",
-                    server_version="0.1.0",
+                    server_version=__version__,
                     capabilities=app.get_capabilities(
                         notification_options=NotificationOptions(),
                         experimental_capabilities={},
@@ -224,15 +226,19 @@ def _validate_tool_call(args: dict) -> Any:
     tool_call = ToolCall(tool=tool_name, args=arguments)
     result = validator.validate([tool_call])
 
-    if result.needs_retry:
-        return {
-            "valid": False,
-            "error": result.nudge.content if result.nudge else "Unknown validation error",
-            "tool_name": tool_name,
-            "available_tools": available_tools,
-        }
-
     import mcp.types as types
+
+    if result.needs_retry:
+        return types.TextContent(
+            type="text",
+            text=json.dumps({
+                "valid": False,
+                "error": result.nudge.content if result.nudge else "Unknown validation error",
+                "tool_name": tool_name,
+                "available_tools": available_tools,
+            }, indent=2),
+        )
+
     return types.TextContent(
         type="text",
         text=json.dumps({

@@ -49,7 +49,8 @@ from hermes_forge.context.manager import ContextManager, CompactEvent
 from hermes_forge.context.strategies import CompactStrategy, NoCompact, TieredCompact, SlidingWindowCompact
 from hermes_forge.context.hardware import HardwareProfile, detect_hardware
 
-from hermes_forge.prompts.templates import build_tool_prompt, extract_tool_call, rescue_tool_call
+from hermes_forge.prompts.templates import build_tool_prompt, extract_tool_call
+from hermes_forge.guardrails.response_validator import rescue_tool_call
 from hermes_forge.prompts.nudges import retry_nudge, step_nudge
 
 from hermes_forge.tools.respond import RESPOND_TOOL_NAME, respond_spec, respond_tool

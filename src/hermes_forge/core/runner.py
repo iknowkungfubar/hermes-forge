@@ -1,33 +1,53 @@
 """
 WorkflowRunner — the agentic tool-calling loop.
+
+Drives the LLM inference → validation → tool execution → repeat loop,
+enforcing guardrails at each step. Wires together:
+  - LLMClient (backend-agnostic inference)
+  - ResponseValidator (tool-call schema & rescue)
+  - StepEnforcer (required-steps & prerequisite ordering)
+  - ErrorTracker (retry budgets)
+  - ContextManager (token-budget compaction)
 """
 
 from __future__ import annotations
 
-import json
-from collections.abc import Callable
+import asyncio
+import logging
 from typing import Any
 
-from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType, ToolCallInfo
-from hermes_forge.core.workflow import ToolCall, TextResponse, Workflow
+from hermes_forge.clients.base import LLMClient
+from hermes_forge.core.inference import run_inference
+from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType
+from hermes_forge.core.workflow import ToolCall, ToolSpec, Workflow
 from hermes_forge.errors import (
     MaxIterationsError,
-    PrerequisiteError,
-    StepEnforcementError,
     ToolCallError,
     ToolExecutionError,
 )
 from hermes_forge.guardrails.error_tracker import ErrorTracker
 from hermes_forge.guardrails.response_validator import ResponseValidator
 from hermes_forge.guardrails.step_enforcer import StepEnforcer
+from hermes_forge.proxy.convert import forge_to_openai
+
+logger = logging.getLogger(__name__)
 
 
 class WorkflowRunner:
     """Executes a Workflow against tools with context management and guardrails.
 
     Usage:
-        runner = WorkflowRunner()
+        runner = WorkflowRunner(llm_client=my_client)
         result = await runner.run(workflow, "What's the weather?")
+
+    The runner loops:
+        1.  Compact messages if over budget
+        2.  Send messages + tool specs to the LLM client
+        3.  Validate the response (tool names, arg shape)
+        4.  Enforce step ordering and prerequisites
+        5.  Execute each valid tool call
+        6.  Append tool results as new messages
+        7.  Repeat until a terminal tool is called or max_iterations reached
     """
 
     def __init__(
@@ -37,39 +57,66 @@ class WorkflowRunner:
         max_retries_per_step: int = 3,
         max_tool_errors: int = 2,
         rescue_enabled: bool = True,
+        llm_client: LLMClient | None = None,
     ) -> None:
         self.context_manager = context_manager
         self.max_iterations = max_iterations
         self.max_retries_per_step = max_retries_per_step
         self.max_tool_errors = max_tool_errors
         self.rescue_enabled = rescue_enabled
+        self._llm_client = llm_client
+
+    # ── Client management ──────────────────────────────────────────
+
+    def set_client(self, client: LLMClient) -> None:
+        """Set or replace the LLM client used for inference."""
+        self._llm_client = client
+
+    # ── Main entry-point ───────────────────────────────────────────
 
     async def run(
         self,
         workflow: Workflow,
-        user_message: str,
+        user_message: str | None = None,
         prompt_vars: dict[str, str] | None = None,
         cancel_event: Any | None = None,
+        *,
+        messages: list[Message] | None = None,
     ) -> Any:
         """Execute the workflow and return the terminal tool's result.
 
         Args:
             workflow: The workflow definition.
-            user_message: Input from the user.
-            prompt_vars: Variables for the system prompt template.
+            user_message: Input from the user (used when *messages* not
+                          provided).
+            prompt_vars: Variables for the system-prompt template.
+            cancel_event: Optional asyncio.Event for cancellation.
+            messages: Pre-built message list (alternative to
+                      *user_message* + *prompt_vars*). Used by SlotWorker.
 
         Returns:
             The result from the terminal tool.
 
         Raises:
-            MaxIterationsError: If max_iterations exceeded.
-            ToolCallError: If max_retries exhausted.
-            ToolExecutionError: If tool execution fails repeatedly.
+            MaxIterationsError: If *max_iterations* reached without a
+                                terminal tool.
+            ToolCallError: Retry budget exhausted.
+            ToolExecutionError: Tool execution fails repeatedly.
+            RuntimeError: No LLM client configured.
         """
-        rendered_prompt = workflow.build_system_prompt(**(prompt_vars or {}))
-        messages: list[Message] = []
-        messages.append(Message(MessageRole.SYSTEM, rendered_prompt, MessageMeta(MessageType.SYSTEM_PROMPT)))
-        messages.append(Message(MessageRole.USER, user_message, MessageMeta(MessageType.USER_INPUT)))
+        if self._llm_client is None:
+            raise RuntimeError(
+                "No LLM client configured. Pass llm_client to the "
+                "constructor or call set_client() before running."
+            )
+
+        # --- Build initial messages if not provided directly ----------
+        if messages is None:
+            rendered = workflow.build_system_prompt(**(prompt_vars or {}))
+            messages = [
+                Message(MessageRole.SYSTEM, rendered, MessageMeta(MessageType.SYSTEM_PROMPT)),
+                Message(MessageRole.USER, user_message or "", MessageMeta(MessageType.USER_INPUT)),
+            ]
 
         tool_names = list(workflow.tools.keys())
         validator = ResponseValidator(tool_names, rescue_enabled=self.rescue_enabled)
@@ -88,44 +135,118 @@ class WorkflowRunner:
             max_tool_errors=self.max_tool_errors,
         )
 
-        tool_call_counter = 0
         iteration = 0
-        terminal_result = None
+        terminal_result: Any | None = None
 
+        # ── Main agentic loop ─────────────────────────────────────────
         while iteration < self.max_iterations:
+            # Cancellation check
             if cancel_event is not None and hasattr(cancel_event, "is_set") and cancel_event.is_set():
+                logger.info("Workflow '%s' cancelled at iteration %d", workflow.name, iteration)
                 break
 
-            # Compact if needed
+            # Context compaction
             if self.context_manager is not None:
                 should_compact, _ = self.context_manager.should_compact(messages)
                 if should_compact:
-                    messages = self.context_manager.compact(messages, step_hint=step_enforcer.summary_hint())
+                    messages = self.context_manager.compact(
+                        messages, step_hint=step_enforcer.summary_hint(),
+                    )
 
-            # Build tool specs for the LLM
-            tool_specs = workflow.get_tool_specs()
-            tool_call_counter += 1
+            # Serialize messages and build tool definitions
+            oai_messages = forge_to_openai(messages)
+            oai_tools = _build_openai_tools(workflow.get_tool_specs()) if tool_names else None
 
-            # Simulate a call to the "LLM" by executing the workflow tools directly
-            # In a real scenario, this would call an LLM client.
-            # For the guardrail framework, we handle the response validation loop.
-            response_text = f"[Simulated response for iteration {iteration}]"
+            # ── Call the LLM ──────────────────────────────────────────
+            try:
+                response_data, token_usage = await self._llm_client.send(oai_messages, oai_tools)
+            except Exception as exc:
+                logger.error("LLM call failed at iteration %d: %s", iteration, exc)
+                raise ToolExecutionError("__llm__", cause=exc) from exc
 
-            # For actual use, the caller would provide the LLM response here.
-            # The guardrails validate and enforce step ordering.
-            result_val = await self._execute_tools(
-                workflow=workflow,
-                messages=messages,
-                step_enforcer=step_enforcer,
-                validator=validator,
-                error_tracker=error_tracker,
-                tool_call_counter=tool_call_counter,
-                iteration=iteration,
-            )
+            # ── Dispatch on response type ─────────────────────────────
+            if not response_data:
+                messages.append(_nudge("retry", "The LLM returned an empty response."))
+                error_tracker.record_retry()
+                if error_tracker.retries_exhausted:
+                    raise ToolCallError("Empty LLM responses exhausted the retry limit")
+                iteration += 1
+                continue
 
-            if result_val is not None:
-                terminal_result = result_val
-                break
+            first = response_data[0]
+
+            # Case 1 — structured tool-call response
+            if isinstance(first, dict) and "tool" in first:
+                tool_calls = [
+                    ToolCall(tool=tc["tool"], args=tc.get("args", {}))
+                    for tc in response_data
+                ]
+                result = await self._handle_tool_calls(
+                    workflow, tool_calls, messages,
+                    step_enforcer, validator, error_tracker,
+                )
+                if result is not None:
+                    terminal_result = result
+                    break
+
+            # Case 2 — text / assistant response  (may embed a tool call)
+            elif isinstance(first, dict) and ("content" in first or first.get("role") == "assistant"):
+                text = first.get("content", "")
+
+                # Record the assistant message for context
+                messages.append(
+                    Message(MessageRole.ASSISTANT, text, MessageMeta(MessageType.TEXT_RESPONSE))
+                )
+
+                if not text.strip():
+                    messages.append(_nudge("retry", "The LLM returned an empty response."))
+                    error_tracker.record_retry()
+                    if error_tracker.retries_exhausted:
+                        raise ToolCallError("Empty LLM responses exhausted the retry limit")
+                    iteration += 1
+                    continue
+
+                # Attempt rescue parsing (code fences, Qwen XML, …)
+                inference_result = run_inference(text, tools=tool_names)
+
+                if inference_result.needs_retry:
+                    reason = inference_result.retry_reason or "Please respond with a valid tool call."
+                    messages.append(_nudge("retry", reason))
+                    error_tracker.record_retry()
+                    if error_tracker.retries_exhausted:
+                        raise ToolCallError(f"Retry limit reached: {reason}")
+                    iteration += 1
+                    continue
+
+                if inference_result.tool_calls:
+                    # Rescue succeeded — treat as tool-call response
+                    result = await self._handle_tool_calls(
+                        workflow, inference_result.tool_calls, messages,
+                        step_enforcer, validator, error_tracker,
+                    )
+                    if result is not None:
+                        terminal_result = result
+                        break
+                else:
+                    # Genuine plain-text response
+                    if tool_names:
+                        messages.append(
+                            _nudge("retry", "Please use one of the available tools.")
+                        )
+                        error_tracker.record_retry()
+                        if error_tracker.retries_exhausted:
+                            raise ToolCallError("Text responses exhausted the retry limit")
+                    else:
+                        terminal_result = text
+                        break
+
+            # Case 3 — unrecognised format
+            else:
+                logger.warning("Unexpected LLM response format at iteration %d: %s", iteration, first)
+                messages.append(_nudge("retry", "Unexpected response format from the LLM."))
+                error_tracker.record_retry()
+                if error_tracker.retries_exhausted:
+                    raise ToolCallError("Malformed LLM responses exhausted the retry limit")
 
             iteration += 1
 
@@ -138,21 +259,120 @@ class WorkflowRunner:
             step_enforcer.pending(),
         )
 
-    async def _execute_tools(
+    # ── Tool-call handling ──────────────────────────────────────────
+
+    async def _handle_tool_calls(
         self,
         workflow: Workflow,
+        tool_calls: list[ToolCall],
         messages: list[Message],
         step_enforcer: StepEnforcer,
         validator: ResponseValidator,
         error_tracker: ErrorTracker,
-        tool_call_counter: int,
-        iteration: int,
     ) -> Any | None:
-        """Execute the current batch of tool calls from the LLM response.
+        """Validate, order-enforce, and execute a batch of tool calls.
 
-        In a real implementation, this would call the LLM, validate the
-        response, and execute the returned tool calls.
+        Returns the terminal-tool result if one was called, else *None*.
         """
-        # Placeholder — real LLM calls would happen here.
-        # This is the integration point for the MCP server.
-        return None
+        # 1. Schema validation (tool name, argument shape)
+        validation = validator.validate(tool_calls)
+        if validation.needs_retry:
+            nudge = validation.nudge
+            kind = nudge.kind if nudge else "retry"
+            content = nudge.content if nudge else "Invalid tool call — please try again."
+            messages.append(_nudge(kind, content))
+            error_tracker.record_retry()
+            if error_tracker.retries_exhausted:
+                raise ToolCallError("Invalid tool calls exhausted the retry limit")
+            return None
+
+        validated_calls = validation.tool_calls
+        if not validated_calls:
+            messages.append(_nudge("retry", "No valid tool calls found."))
+            error_tracker.record_retry()
+            return None
+
+        # 2. Step-ordering check
+        step_check = step_enforcer.check(validated_calls)
+        if step_check.needs_nudge:
+            messages.append(_nudge("step_enforcement", step_check.nudge.content))
+            return None
+
+        # 3. Prerequisite check
+        prereq_check = step_enforcer.check_prerequisites(validated_calls)
+        if prereq_check.needs_nudge:
+            messages.append(_nudge("prerequisite_skip", prereq_check.nudge.content))
+            return None
+
+        # 4. Execute
+        terminal_result: Any | None = None
+        for tc in validated_calls:
+            try:
+                callable_fn = workflow.get_callable(tc.tool)
+                args = tc.args if isinstance(tc.args, dict) else {}
+
+                # Support sync *and* async callables
+                if asyncio.iscoroutinefunction(callable_fn):
+                    result = await callable_fn(**args)
+                else:
+                    result = callable_fn(**args)
+
+                result_str = str(result) if result is not None else ""
+                messages.append(
+                    Message(
+                        MessageRole.TOOL,
+                        result_str,
+                        MessageMeta(MessageType.TOOL_RESULT),
+                        tool_name=tc.tool,
+                    )
+                )
+
+                step_enforcer.record(tc.tool, args)
+                error_tracker.reset_retries()
+                error_tracker.record_result(success=True)
+
+                if tc.tool in workflow.terminal_tools:
+                    terminal_result = result
+
+            except Exception as exc:
+                logger.error("Tool '%s' execution failed: %s", tc.tool, exc)
+                messages.append(
+                    Message(
+                        MessageRole.TOOL,
+                        f"Error: {exc}",
+                        MessageMeta(MessageType.TOOL_RESULT),
+                        tool_name=tc.tool,
+                    )
+                )
+                error_tracker.record_result(success=False)
+                if error_tracker.tool_errors_exhausted:
+                    raise ToolExecutionError(tc.tool, cause=exc) from exc
+
+        return terminal_result
+
+
+# ── Module-level helpers ──────────────────────────────────────────────
+
+
+def _build_openai_tools(tool_specs: list[ToolSpec]) -> list[dict[str, Any]]:
+    """Convert forge ``ToolSpec`` objects to OpenAI-compatible tool definitions."""
+    tools: list[dict[str, Any]] = []
+    for spec in tool_specs:
+        tools.append({
+            "type": "function",
+            "function": {
+                "name": spec.name,
+                "description": spec.description,
+                "parameters": spec.get_json_schema(),
+            },
+        })
+    return tools
+
+
+def _nudge(kind: str, content: str) -> Message:
+    """Build a user-role nudge message that re-prompts the model."""
+    return Message(
+        MessageRole.USER,
+        content,
+        MessageMeta(MessageType.RETRY_NUDGE),
+    )

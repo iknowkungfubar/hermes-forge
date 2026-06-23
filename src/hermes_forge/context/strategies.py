@@ -8,7 +8,17 @@ from abc import ABC, abstractmethod
 
 
 def _estimate_tokens(messages: list) -> int:
-    return sum(len(m.content) for m in messages) // 4
+    """Estimate token count using tiktoken if available, fall back to char-based."""
+    try:
+        import tiktoken
+        enc = tiktoken.get_encoding("cl100k_base")
+        total = 0
+        for m in messages:
+            content = m.content if hasattr(m, "content") else str(m)
+            total += len(enc.encode(content))
+        return total
+    except ImportError:
+        return sum(len(m.content) for m in messages) // 4
 
 
 class CompactStrategy(ABC):
