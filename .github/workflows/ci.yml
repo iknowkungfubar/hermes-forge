@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]
@@ -19,11 +22,12 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: pyproject.toml
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install hatchling pytest pytest-asyncio pytest-cov httpx pydantic mcp
-        pip install -e .
+        pip install -e ".[dev]"
     - name: Run tests
       run: |
         python -m pytest tests/ -v --tb=short --cov=hermes_forge --cov-report=term-missing
@@ -31,3 +35,39 @@ jobs:
       run: |
         python -c "from hermes_forge import *; print('All exports OK')"
         python -c "from hermes_forge_plugin.plugin import HermesForgePlugin; print('Plugin import OK')"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+        cache: pip
+        cache-dependency-path: pyproject.toml
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+    - name: Run ruff
+      run: ruff check .
+    - name: Run mypy
+      run: mypy hermes_forge/
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+        cache: pip
+        cache-dependency-path: pyproject.toml
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+    - name: Run pip-audit
+      run: pip-audit --strict
