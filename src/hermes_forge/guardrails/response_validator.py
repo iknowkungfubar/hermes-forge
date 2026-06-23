@@ -189,21 +189,47 @@ def rescue_tool_call(text: str, valid_tools: set[str]) -> list[ToolCall] | None:
                 pass
 
     # Strategy 3: Qwen <tool_call> XML
+    # Format A (flat): <tool_call>tool_name\n{"args"}\n</tool_call>
+    # Format B (nested): <tool_call>\n<tool_name>name</tool_name>\n<arguments>{"args"}</arguments>\n</tool_call>
     qwen_match = re.search(
-        r"<tool_call>\s*(\w+)\s*(.*?)\s*</tool_call>", text, re.DOTALL
+        r"<tool_call>\s*(.*?)\s*</tool_call>", text, re.DOTALL
     )
     if qwen_match:
-        tool_name = qwen_match.group(1)
-        if tool_name in valid_tools:
-            args_text = qwen_match.group(2).strip()
-            if args_text:
-                try:
-                    args = json.loads(args_text)
-                    if isinstance(args, dict):
-                        return [ToolCall(tool=tool_name, args=args)]
-                except json.JSONDecodeError:
-                    pass
-            return [ToolCall(tool=tool_name, args={})]
+        inner = qwen_match.group(1).strip()
+
+        # Try Format B (nested): <tool_name>...</tool_name> + <arguments>...</arguments>
+        name_match = re.search(r"<tool_name>\s*(.*?)\s*</tool_name>", inner, re.DOTALL)
+        args_match = re.search(r"<arguments>\s*(.*?)\s*</arguments>", inner, re.DOTALL)
+
+        if name_match:
+            tool_name = name_match.group(1).strip()
+            if tool_name in valid_tools:
+                args = {}
+                if args_match:
+                    args_text = args_match.group(1).strip()
+                    if args_text:
+                        try:
+                            parsed = json.loads(args_text)
+                            if isinstance(parsed, dict):
+                                args = parsed
+                        except json.JSONDecodeError:
+                            pass
+                return [ToolCall(tool=tool_name, args=args)]
+
+        # Try Format A (flat): first word = tool, rest = JSON
+        flat_match = re.match(r"^(\w+)\s*(.*)", inner, re.DOTALL)
+        if flat_match:
+            tool_name = flat_match.group(1)
+            if tool_name in valid_tools:
+                args_text = flat_match.group(2).strip()
+                if args_text:
+                    try:
+                        args = json.loads(args_text)
+                        if isinstance(args, dict):
+                            return [ToolCall(tool=tool_name, args=args)]
+                    except json.JSONDecodeError:
+                        pass
+                return [ToolCall(tool=tool_name, args={})]
 
     # Strategy 4: Naked JSON with balanced braces
     outermost = _extract_outermost_json(text)
