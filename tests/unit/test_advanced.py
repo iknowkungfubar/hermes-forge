@@ -2,16 +2,13 @@
 Advanced tests covering edge cases, proxy, clients, converters, and security.
 """
 
-import json
 import pytest
 from hermes_forge.core.messages import (
-    Message, MessageMeta, MessageRole, MessageType, ToolCallInfo,
+    Message, MessageMeta, MessageRole, MessageType,
 )
 from hermes_forge.core.workflow import TextResponse, ToolCall, ToolSpec, ToolDef, Workflow
-from hermes_forge.core.steps import StepTracker
 from hermes_forge.guardrails.response_validator import ResponseValidator, rescue_tool_call
 from hermes_forge.guardrails.step_enforcer import StepEnforcer
-from hermes_forge.guardrails.error_tracker import ErrorTracker
 from hermes_forge.guardrails.guardrails import Guardrails
 from hermes_forge.context.manager import ContextManager
 from hermes_forge.context.strategies import NoCompact, SlidingWindowCompact, TieredCompact
@@ -198,7 +195,7 @@ class TestCompactionEdgeCases:
         ]
         for i in range(10):
             messages.append(
-                Message(role=MessageRole.ASSISTANT, content=f"x" * 200,
+                Message(role=MessageRole.ASSISTANT, content="x" * 200,
                         metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i))
             )
             messages.append(
@@ -443,7 +440,8 @@ class TestErrorTypes:
 class TestWorkflowEdgeCases:
     def test_terminal_tool_frozenset(self):
         from pydantic import BaseModel
-        class P(BaseModel): pass
+        class P(BaseModel):
+            pass
         def f(): return ""
         wf = Workflow(
             name="test",
@@ -459,7 +457,8 @@ class TestWorkflowEdgeCases:
 
     def test_terminal_cannot_be_required(self):
         from pydantic import BaseModel
-        class P(BaseModel): pass
+        class P(BaseModel):
+            pass
         def f(): return ""
         with pytest.raises(ValueError, match="cannot also be a required step"):
             Workflow(
@@ -471,7 +470,8 @@ class TestWorkflowEdgeCases:
 
     def test_missing_prerequisite_tool(self):
         from pydantic import BaseModel
-        class P(BaseModel): pass
+        class P(BaseModel):
+            pass
         def f(): return ""
         with pytest.raises((ValueError, KeyError)):
             Workflow(
@@ -507,7 +507,6 @@ class TestSecurityEdgeCases:
         assert result.needs_retry
 
     def test_nan_inf_values_in_args(self):
-        import math
         validator = ResponseValidator(tool_names=["tool"])
         result = validator.validate([ToolCall(tool="tool", args={"value": float('inf')})])
         # Should not crash — just pass through

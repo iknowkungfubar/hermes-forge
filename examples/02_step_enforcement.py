@@ -10,7 +10,6 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from hermes_forge.core.workflow import ToolCall
-from hermes_forge.guardrails.step_enforcer import StepEnforcer
 from hermes_forge.guardrails.guardrails import Guardrails
 
 
@@ -41,7 +40,7 @@ def main():
     # Attempt 2: Call authenticate
     print("\n--- Attempt 2: Call authenticate ---")
     guard.record([("authenticate", {"user": "admin", "password": "***"})])
-    print(f"  ✅ authenticate completed")
+    print("  ✅ authenticate completed")
     print(f"  Pending: {guard._enforcer.pending()}")
 
     # Attempt 3: Skip fetch_data, try analyze
@@ -60,14 +59,14 @@ def main():
     result = guard.check([ToolCall(tool="fetch_data", args={"source": "db", "table": "orders"})])
     if result.action == "execute":
         guard.record([("fetch_data", {"source": "db", "table": "orders"})])
-        print(f"  ✅ fetch_data completed")
+        print("  ✅ fetch_data completed")
     else:
         print(f"  ❌ Blocked: {result.nudge.content}")
 
     result = guard.check([ToolCall(tool="analyze", args={"query": "sales"})])
     if result.action == "execute":
         guard.record([("analyze", {"query": "sales"})])
-        print(f"  ✅ analyze completed")
+        print("  ✅ analyze completed")
         print(f"  All required steps done: {guard._enforcer.is_satisfied()}")
 
     # Attempt 5: Now export should work

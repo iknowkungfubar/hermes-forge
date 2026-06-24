@@ -19,7 +19,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from hermes_forge.clients.base import LLMClient
 from hermes_forge.clients.ollama import OllamaClient

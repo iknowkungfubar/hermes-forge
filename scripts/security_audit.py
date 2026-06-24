@@ -117,7 +117,7 @@ if not any_findings:
     print("\n✅  No secrets, injections, or path leaks found.")
 
 print(f"\n{'='*70}")
-print(f"SCAN SUMMARY")
+print("SCAN SUMMARY")
 print(f"{'='*70}")
 print(f"  Files scanned: {sum(len(files) for _, _, files in os.walk(REPO) if not any(s in _ for s in ['.git', '__pycache__']))}")
 print(f"  Total findings: {sum(len(v) for v in results.values())}")

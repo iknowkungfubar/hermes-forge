@@ -1,5 +1,9 @@
 """Quick rescue parsing verification."""
-from hermes_forge.guardrails.response_validator import rescue_tool_call
+from hermes_forge.guardrails.response_validator import rescue_tool_call, ResponseValidator
+from hermes_forge.core.workflow import ToolCall
+from hermes_forge.guardrails.guardrails import Guardrails
+from hermes_forge.core.steps import StepTracker
+from hermes_forge.context.strategies import NoCompact
 
 # Test 1: JSON with triple backticks
 text = '```json {"name": "get_weather", "arguments": {"city": "Paris"}} ```'
@@ -27,9 +31,6 @@ assert calls4 is None, f'Expected None for unknown tool, got {calls4}'
 print('PASS: Unknown tool returns None')
 
 # Test 5: All validations
-from hermes_forge.guardrails.response_validator import ResponseValidator
-from hermes_forge.core.workflow import ToolCall
-
 v = ResponseValidator(tool_names=['get_weather', 'send_email'])
 r = v.validate([ToolCall(tool='get_weather', args={'city': 'London'})])
 assert not r.needs_retry, 'Valid call should not need retry'
@@ -40,7 +41,6 @@ assert r.needs_retry, 'Unknown tool should need retry'
 print('PASS: Unknown tool rejected')
 
 # Test 6: Guardrails facade
-from hermes_forge.guardrails.guardrails import Guardrails
 g = Guardrails(tool_names=['a', 'b', 'finish'], terminal_tool='finish',
                required_steps=['a', 'b'])
 r = g.check([ToolCall(tool='finish', args={})])
@@ -51,7 +51,6 @@ assert r.action == 'execute', f'Expected execute, got {r.action}'
 print('PASS: Guardrails step enforcement')
 
 # Test 7: StepTracker prerequisites
-from hermes_forge.core.steps import StepTracker
 t = StepTracker()
 t.record('login', {'user': 'admin'})
 result = t.check_prerequisites('export', {}, ['login'])
@@ -59,7 +58,6 @@ assert result.satisfied, 'Prereq should be satisfied'
 print('PASS: StepTracker prerequisites')
 
 # Test 8: Context
-from hermes_forge.context.strategies import NoCompact, SlidingWindowCompact, TieredCompact
 nc = NoCompact()
 r, p = nc.compact(['a', 'b'], 4096)
 assert p == 0, 'NoCompact should return phase 0'

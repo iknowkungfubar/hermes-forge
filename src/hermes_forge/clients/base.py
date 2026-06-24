@@ -9,7 +9,7 @@ to forge's canonical Message types so guardrails apply uniformly.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -95,4 +95,3 @@ class LLMClient(ABC):
 
 
 # Need AsyncIterator
-from collections.abc import AsyncIterator

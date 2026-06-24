@@ -13,9 +13,8 @@ import subprocess
 import time
 from enum import Enum
 from pathlib import Path
-from typing import Any
 
-from hermes_forge.context.hardware import HardwareProfile, detect_hardware
+from hermes_forge.context.hardware import detect_hardware
 
 logger = logging.getLogger("forge.server")
 

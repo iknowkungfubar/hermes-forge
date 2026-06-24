@@ -12,7 +12,6 @@ This is the core request processing pipeline:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import time
@@ -20,16 +19,14 @@ from typing import Any
 
 from hermes_forge.clients.base import LLMClient, TokenUsage
 from hermes_forge.context.manager import ContextManager
-from hermes_forge.core.messages import Message, MessageRole, MessageType
-from hermes_forge.core.workflow import ToolCall, TextResponse, ToolSpec
-from hermes_forge.guardrails.response_validator import ResponseValidator, rescue_tool_call
+from hermes_forge.core.workflow import ToolCall, TextResponse
+from hermes_forge.guardrails.response_validator import ResponseValidator
 from hermes_forge.proxy.convert import (
     build_tool_specs,
-    extract_tool_calls,
     forge_to_openai,
     openai_to_forge,
 )
-from hermes_forge.tools.respond import RESPOND_TOOL_NAME, respond_spec
+from hermes_forge.tools.respond import RESPOND_TOOL_NAME
 
 logger = logging.getLogger("forge.proxy.handler")
 
@@ -65,8 +62,6 @@ class RequestHandler:
 
         Returns an OpenAI-compatible response dict.
         """
-        start_time = time.monotonic()
-
         # 1. Parse
         messages = body.get("messages", [])
         tools = body.get("tools", [])

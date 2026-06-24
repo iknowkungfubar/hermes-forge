@@ -10,7 +10,6 @@ import logging
 import shutil
 import subprocess
 from dataclasses import dataclass
-from typing import Any
 
 logger = logging.getLogger("forge.context.hardware")
 
