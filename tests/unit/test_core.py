@@ -4,15 +4,34 @@ Basic tests for hermes-forge guardrails.
 
 import json
 import pytest
-from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType, ToolCallInfo
-from hermes_forge.core.workflow import TextResponse, ToolCall, ToolSpec, ToolDef, Workflow
+from hermes_forge.core.messages import (
+    Message,
+    MessageMeta,
+    MessageRole,
+    MessageType,
+    ToolCallInfo,
+)
+from hermes_forge.core.workflow import (
+    TextResponse,
+    ToolCall,
+    ToolSpec,
+    ToolDef,
+    Workflow,
+)
 from hermes_forge.core.steps import StepTracker
-from hermes_forge.guardrails.response_validator import ResponseValidator, rescue_tool_call
+from hermes_forge.guardrails.response_validator import (
+    ResponseValidator,
+    rescue_tool_call,
+)
 from hermes_forge.guardrails.step_enforcer import StepEnforcer
 from hermes_forge.guardrails.error_tracker import ErrorTracker
 from hermes_forge.guardrails.guardrails import Guardrails
 from hermes_forge.context.manager import ContextManager
-from hermes_forge.context.strategies import NoCompact, SlidingWindowCompact, TieredCompact
+from hermes_forge.context.strategies import (
+    NoCompact,
+    SlidingWindowCompact,
+    TieredCompact,
+)
 
 
 class TestMessages:
@@ -24,7 +43,9 @@ class TestMessages:
         assert msg.tool_calls is None
 
     def test_tool_call_info(self):
-        info = ToolCallInfo(name="get_weather", call_id="call_1", args='{"city": "London"}')
+        info = ToolCallInfo(
+            name="get_weather", call_id="call_1", args='{"city": "London"}'
+        )
         assert info.name == "get_weather"
         assert info.call_id == "call_1"
 
@@ -71,14 +92,18 @@ class TestToolSpec:
 class TestResponseValidator:
     def test_valid_tool_call(self):
         validator = ResponseValidator(tool_names=["get_weather"])
-        result = validator.validate([ToolCall(tool="get_weather", args={"city": "London"})])
+        result = validator.validate(
+            [ToolCall(tool="get_weather", args={"city": "London"})]
+        )
         assert not result.needs_retry
         assert result.tool_calls is not None
         assert len(result.tool_calls) == 1
 
     def test_unknown_tool(self):
         validator = ResponseValidator(tool_names=["get_weather"])
-        result = validator.validate([ToolCall(tool="send_email", args={"to": "a@b.com"})])
+        result = validator.validate(
+            [ToolCall(tool="send_email", args={"to": "a@b.com"})]
+        )
         assert result.needs_retry
         assert result.nudge is not None
         assert "Unknown tool" in result.nudge.content
@@ -133,6 +158,7 @@ class TestStepEnforcer:
             terminal_tools=frozenset(["export"]),
         )
         from hermes_forge.core.workflow import ToolCall
+
         result = enforcer.check([ToolCall(tool="export", args={})])
         assert result.needs_nudge
 
@@ -143,6 +169,7 @@ class TestStepEnforcer:
         )
         enforcer.record("authenticate", {"user": "admin"})
         from hermes_forge.core.workflow import ToolCall
+
         result = enforcer.check([ToolCall(tool="export", args={})])
         assert not result.needs_nudge
 
@@ -164,6 +191,7 @@ class TestStepEnforcer:
             max_premature_attempts=2,
         )
         from hermes_forge.core.workflow import ToolCall
+
         for _ in range(2):
             enforcer.check([ToolCall(tool="terminal", args={})])
         assert enforcer.premature_exhausted
@@ -203,6 +231,7 @@ class TestGuardrails:
             terminal_tool="finish",
         )
         from hermes_forge.core.workflow import ToolCall
+
         result = guard.check([ToolCall(tool="get_weather", args={"city": "London"})])
         assert result.action == "execute"
 
@@ -212,6 +241,7 @@ class TestGuardrails:
             terminal_tool="finish",
         )
         from hermes_forge.core.workflow import ToolCall
+
         result = guard.check([ToolCall(tool="bad_tool", args={})])
         assert result.action in ("retry", "tool_error")
 
@@ -230,6 +260,7 @@ class TestGuardrails:
             required_steps=["step_a", "step_b"],
         )
         from hermes_forge.core.workflow import ToolCall
+
         result = guard.check([ToolCall(tool="terminal", args={})])
         assert result.action == "step_blocked"
 
@@ -239,7 +270,6 @@ class TestGuardrails:
             terminal_tool="terminal",
             max_retries=2,
         )
-        from hermes_forge.core.workflow import ToolCall
         guard.check(TextResponse(content="no"))
         guard.check(TextResponse(content="no"))
         result = guard.check(TextResponse(content="no"))
@@ -281,13 +311,25 @@ class TestContextStrategies:
     def test_sliding_window(self):
         strategy = SlidingWindowCompact(keep_recent=2, compact_threshold=0.5)
         messages = [
-            Message(role=MessageRole.SYSTEM, content="sys", metadata=MessageMeta(MessageType.SYSTEM_PROMPT)),
-            Message(role=MessageRole.USER, content="user", metadata=MessageMeta(MessageType.USER_INPUT)),
+            Message(
+                role=MessageRole.SYSTEM,
+                content="sys",
+                metadata=MessageMeta(MessageType.SYSTEM_PROMPT),
+            ),
+            Message(
+                role=MessageRole.USER,
+                content="user",
+                metadata=MessageMeta(MessageType.USER_INPUT),
+            ),
         ]
         # Add some messages to trigger compaction
         for i in range(10):
             messages.append(
-                Message(role=MessageRole.ASSISTANT, content=f"msg_{i}", metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i))
+                Message(
+                    role=MessageRole.ASSISTANT,
+                    content=f"msg_{i}",
+                    metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i),
+                )
             )
 
         # With small budget, compaction should trigger
@@ -334,7 +376,9 @@ class TestWorkflow:
             description="Test workflow",
             tools={
                 "get_weather": ToolDef(
-                    spec=ToolSpec(name="get_weather", description="Get weather", parameters=Params),
+                    spec=ToolSpec(
+                        name="get_weather", description="Get weather", parameters=Params
+                    ),
                     callable=dummy,
                 ),
             },
@@ -354,13 +398,17 @@ class TestWorkflow:
         def dummy() -> str:
             return "ok"
 
-        with pytest.raises(ValueError, match="Required step 'missing_tool' not in tools"):
+        with pytest.raises(
+            ValueError, match="Required step 'missing_tool' not in tools"
+        ):
             Workflow(
                 name="bad",
                 description="Bad",
                 tools={
                     "tool_a": ToolDef(
-                        spec=ToolSpec(name="tool_a", description="Tool A", parameters=Params),
+                        spec=ToolSpec(
+                            name="tool_a", description="Tool A", parameters=Params
+                        ),
                         callable=dummy,
                     ),
                 },
@@ -399,15 +447,28 @@ class TestCLI:
     def test_cli_validate_valid(self, tmp_path):
         import subprocess
         import sys
+
         tools_file = tmp_path / "tools.json"
-        tools_file.write_text(json.dumps([{"name": "get_weather", "function": {"name": "get_weather"}}]))
+        tools_file.write_text(
+            json.dumps([{"name": "get_weather", "function": {"name": "get_weather"}}])
+        )
         call_file = tmp_path / "call.json"
-        call_file.write_text(json.dumps({"name": "get_weather", "arguments": {"city": "London"}}))
+        call_file.write_text(
+            json.dumps({"name": "get_weather", "arguments": {"city": "London"}})
+        )
         result = subprocess.run(
-            [sys.executable, "-m", "hermes_forge.cli", "validate",
-             "--tools", str(tools_file),
-             "--call-file", str(call_file)],
-            capture_output=True, text=True,
+            [
+                sys.executable,
+                "-m",
+                "hermes_forge.cli",
+                "validate",
+                "--tools",
+                str(tools_file),
+                "--call-file",
+                str(call_file),
+            ],
+            capture_output=True,
+            text=True,
         )
         print(result.stdout, result.stderr)
         assert result.returncode == 0

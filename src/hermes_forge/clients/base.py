@@ -9,7 +9,7 @@ to forge's canonical Message types so guardrails apply uniformly.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -25,6 +25,7 @@ class ChunkType(str, Enum):
 @dataclass
 class StreamChunk:
     """A single chunk from a streaming LLM response."""
+
     type: ChunkType
     content: str = ""
     tool_name: str | None = None
@@ -35,6 +36,7 @@ class StreamChunk:
 @dataclass
 class TokenUsage:
     """Token usage information from an LLM response."""
+
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
@@ -95,4 +97,3 @@ class LLMClient(ABC):
 
 
 # Need AsyncIterator
-from collections.abc import AsyncIterator

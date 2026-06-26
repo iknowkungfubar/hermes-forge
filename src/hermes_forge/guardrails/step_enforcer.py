@@ -4,7 +4,7 @@ StepEnforcer — enforces required steps and prerequisite ordering.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from hermes_forge.core.steps import StepTracker
@@ -15,6 +15,7 @@ from hermes_forge.guardrails.nudge import Nudge
 @dataclass
 class StepCheck:
     """Result of check() — does the model need a nudge?"""
+
     needs_nudge: bool = False
     nudge: Nudge | None = None
 

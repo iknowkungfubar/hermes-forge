@@ -11,6 +11,7 @@ from typing import Any
 @dataclass
 class CompactEvent:
     """Event fired when context compaction occurs."""
+
     phase: int
     before_tokens: int
     after_tokens: int
@@ -62,18 +63,22 @@ class ContextManager:
         before_tokens = sum(len(m.content) for m in messages) // 4
         before_count = len(messages)
 
-        compacted, phase = self._strategy.compact(messages, self.budget_tokens, step_hint=step_hint)
+        compacted, phase = self._strategy.compact(
+            messages, self.budget_tokens, step_hint=step_hint
+        )
 
         if phase > 0:
             self._total_compactions += 1
             if self._on_compact:
-                self._on_compact(CompactEvent(
-                    phase=phase,
-                    before_tokens=before_tokens,
-                    after_tokens=sum(len(m.content) for m in compacted) // 4,
-                    budget=self.budget_tokens,
-                    message_count_before=before_count,
-                    message_count_after=len(compacted),
-                ))
+                self._on_compact(
+                    CompactEvent(
+                        phase=phase,
+                        before_tokens=before_tokens,
+                        after_tokens=sum(len(m.content) for m in compacted) // 4,
+                        budget=self.budget_tokens,
+                        message_count_before=before_count,
+                        message_count_after=len(compacted),
+                    )
+                )
 
         return compacted

@@ -10,7 +10,6 @@ import logging
 import shutil
 import subprocess
 from dataclasses import dataclass
-from typing import Any
 
 logger = logging.getLogger("forge.context.hardware")
 
@@ -121,7 +120,9 @@ def _detect_amd() -> HardwareProfile | None:
         if shutil.which("rocm-smi"):
             smi = subprocess.run(
                 ["rocm-smi", "--showmeminfo", "vram"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if smi.returncode == 0:
                 total_match = __import__("re").search(
