@@ -8,19 +8,13 @@ from the LLM.
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
-from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType, ToolCallInfo
 from hermes_forge.core.reasoning import (
     DEFAULT_REASONING_REPLAY,
     ReasoningReplay,
-    filter_openai_reasoning_messages,
-    validate_reasoning_replay,
 )
 from hermes_forge.core.workflow import ToolCall, ToolSpec
-from hermes_forge.errors import ToolCallError
 from hermes_forge.guardrails.response_validator import rescue_tool_call
 
 

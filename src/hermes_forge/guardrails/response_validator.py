@@ -8,7 +8,6 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 from hermes_forge.core.workflow import LLMResponse, TextResponse, ToolCall
 from hermes_forge.guardrails.nudge import Nudge
