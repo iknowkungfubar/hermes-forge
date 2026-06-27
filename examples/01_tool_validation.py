@@ -28,13 +28,13 @@ def main():
     # Test 1: Valid tool call
     print("\n--- Test 1: Valid tool call ---")
     result = validator.validate([ToolCall(tool="get_weather", args={"city": "London"})])
-    print(f"  Tool: get_weather(city='London')")
+    print("  Tool: get_weather(city='London')")
     print(f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}")
 
     # Test 2: Unknown tool
     print("\n--- Test 2: Unknown tool ---")
     result = validator.validate([ToolCall(tool="delete_database", args={})])
-    print(f"  Tool: delete_database()")
+    print("  Tool: delete_database()")
     print(f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}")
     if result.needs_retry:
         print(f"  Error: {result.nudge.content if result.nudge else 'unknown error'}")
@@ -42,7 +42,7 @@ def main():
     # Test 3: Malformed args
     print("\n--- Test 3: Malformed args ---")
     result = validator.validate([ToolCall(tool="get_weather", args="not_a_dict")])
-    print(f"  Tool: get_weather(args='not_a_dict')")
+    print("  Tool: get_weather(args='not_a_dict')")
     print(f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}")
     if result.needs_retry:
         print(f"  Error: {result.nudge.content if result.nudge else 'malformed'}")
@@ -55,12 +55,12 @@ def main():
         print(f"  Input: {malformed[:60]}...")
         print(f"  Rescued: ✅ → {rescued[0].tool}({json.dumps(rescued[0].args)})")
     else:
-        print(f"  Rescued: ❌")
+        print("  Rescued: ❌")
 
     # Test 5: Text response
     print("\n--- Test 5: Text response handling ---")
     result = validator.validate(TextResponse(content="I'll help you with that."))
-    print(f"  Response: 'I'll help you with that.'")
+    print("  Response: 'I'll help you with that.'")
     print(f"  Needs retry: {result.needs_retry}")
 
     print("\n" + "=" * 60)

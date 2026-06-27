@@ -239,7 +239,6 @@ class TestGuardrails:
             terminal_tool="terminal",
             max_retries=2,
         )
-        from hermes_forge.core.workflow import ToolCall
         guard.check(TextResponse(content="no"))
         guard.check(TextResponse(content="no"))
         result = guard.check(TextResponse(content="no"))

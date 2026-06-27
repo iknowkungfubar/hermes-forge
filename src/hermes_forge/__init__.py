@@ -86,7 +86,7 @@ __all__ = [
     # Tools
     "RESPOND_TOOL_NAME", "respond_spec", "respond_tool",
     # Clients
-    "ChunkType", "LLMClient", "LlamafileClient", "OllamaClient",
+    "ChunkType", "LLMClient", "StreamChunk", "TokenUsage", "LlamafileClient", "OllamaClient",
     "OpenAICompatClient", "VLLMClient", "AnthropicClient", "apply_sampling_defaults",
     # Proxy & Server
     "ProxyServer", "BudgetMode", "ServerManager",

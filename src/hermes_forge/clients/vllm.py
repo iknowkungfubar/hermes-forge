@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from hermes_forge.clients.base import LLMClient, StreamChunk, TokenUsage
+from hermes_forge.clients.base import LLMClient, TokenUsage
 from hermes_forge.clients.openai_compat import OpenAICompatClient
 
 logger = logging.getLogger("forge.client.vllm")
@@ -62,7 +62,7 @@ class VLLMClient(LLMClient):
     async def get_served_model_name(self) -> str | None:
         """Discover the served model name from /v1/models."""
         try:
-            ctx = await self._openai.get_context_length()
+            await self._openai.get_context_length()
             # The _openai client's get_context_length queries /v1/models
             # If successful, we know the server is up
             # Re-discover with our own call
@@ -83,7 +83,6 @@ class VLLMClient(LLMClient):
 
     def _set_model_identity(self, name: str) -> None:
         """Override the model identity."""
-        import dataclasses
         self._served_name = name
         # Also update the underlying OpenAI client's model field
         self._openai._model = name

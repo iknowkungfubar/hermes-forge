@@ -185,7 +185,7 @@ def _serve_stdio() -> None:
         except (ValueError, TypeError) as e:
             import mcp.types as types
             return [types.TextContent(type="text", text=json.dumps({"error": str(e)}))]
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error in MCP tool call")
             import mcp.types as types
             return [types.TextContent(type="text", text=json.dumps({"error": "Internal server error"}))]
