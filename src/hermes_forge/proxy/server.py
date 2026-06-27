@@ -70,7 +70,10 @@ class HTTPServer:
 
             method, path, headers, body = request_data
 
-            if path in ("/v1/chat/completions", "/chat/completions") and method == "POST":
+            if (
+                path in ("/v1/chat/completions", "/chat/completions")
+                and method == "POST"
+            ):
                 response = await self._handle_chat_completion(body)
             elif path in ("/health", "/v1/health") and method == "GET":
                 response = {"status": "ok", "service": "hermes-forge-proxy"}
@@ -86,7 +89,12 @@ class HTTPServer:
             try:
                 await self._send_json_response(
                     writer,
-                    {"error": {"message": "Internal server error", "type": "internal_error"}},
+                    {
+                        "error": {
+                            "message": "Internal server error",
+                            "type": "internal_error",
+                        }
+                    },
                     status=500,
                 )
             except Exception:
@@ -102,9 +110,7 @@ class HTTPServer:
     ) -> tuple[str, str, dict[str, str], dict[str, Any]] | None:
         """Read and parse an HTTP request."""
         try:
-            request_line = await asyncio.wait_for(
-                reader.readline(), timeout=30
-            )
+            request_line = await asyncio.wait_for(reader.readline(), timeout=30)
             if not request_line:
                 return None
 
@@ -124,9 +130,7 @@ class HTTPServer:
             headers: dict[str, str] = {}
             total_header_size = 0
             while True:
-                header_line = await asyncio.wait_for(
-                    reader.readline(), timeout=30
-                )
+                header_line = await asyncio.wait_for(reader.readline(), timeout=30)
                 header_str = header_line.decode("utf-8", errors="replace").strip()
                 total_header_size += len(header_line)
                 if total_header_size > _MAX_HEADER_SIZE:

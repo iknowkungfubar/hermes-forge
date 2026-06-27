@@ -8,7 +8,6 @@ that content so it can be handled according to ReasoningReplay policy.
 from __future__ import annotations
 
 import re
-from typing import Any
 
 _THINK_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("think", re.compile(r"<think>(.*?)</think>", re.DOTALL)),

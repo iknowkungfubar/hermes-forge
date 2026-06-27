@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any, Literal
 
-from hermes_forge.clients.base import LLMClient, StreamChunk, ChunkType, TokenUsage
+from hermes_forge.clients.base import LLMClient, StreamChunk, TokenUsage
 from hermes_forge.clients.openai_compat import OpenAICompatClient
 
 logger = logging.getLogger("forge.client.llamafile")
@@ -98,6 +98,8 @@ class LlamafileClient(LLMClient):
                 "content": messages[0]["content"] + tool_prompt,
             }
         else:
-            messages = [{"role": "system", "content": tool_prompt.strip()}] + list(messages)
+            messages = [{"role": "system", "content": tool_prompt.strip()}] + list(
+                messages
+            )
 
         return messages

@@ -26,7 +26,11 @@ class ToolExecutionError(ForgeError):
     def __init__(self, tool_name: str, cause: Exception | None = None) -> None:
         self.tool_name = tool_name
         self.cause = cause
-        super().__init__(f"Tool execution error for '{tool_name}': {cause}" if cause else f"Tool execution error for '{tool_name}'")
+        super().__init__(
+            f"Tool execution error for '{tool_name}': {cause}"
+            if cause
+            else f"Tool execution error for '{tool_name}'"
+        )
 
 
 class StepEnforcementError(ForgeError):
@@ -88,7 +92,11 @@ class BudgetResolutionError(ForgeError):
 
     def __init__(self, cause: Exception | None = None) -> None:
         self.cause = cause
-        super().__init__(f"Could not resolve context budget: {cause}" if cause else "Could not resolve context budget")
+        super().__init__(
+            f"Could not resolve context budget: {cause}"
+            if cause
+            else "Could not resolve context budget"
+        )
 
 
 class BackendError(ForgeError):

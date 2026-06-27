@@ -8,7 +8,6 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 from hermes_forge.core.workflow import LLMResponse, TextResponse, ToolCall
 from hermes_forge.guardrails.nudge import Nudge
@@ -22,6 +21,7 @@ _DEFAULT_RETRY_NUDGE = (
 @dataclass
 class ValidationResult:
     """Result of validating an LLM response."""
+
     tool_calls: list[ToolCall] = None
     needs_retry: bool = False
     nudge: Nudge | None = None
@@ -129,7 +129,7 @@ def _extract_outermost_json(text: str) -> str | None:
         if escape:
             escape = False
             continue
-        if ch == '\\' and in_string:
+        if ch == "\\" and in_string:
             escape = True
             continue
         if ch == '"':
@@ -138,22 +138,22 @@ def _extract_outermost_json(text: str) -> str | None:
         if in_string:
             continue
 
-        if ch == '{':
+        if ch == "{":
             if depth == 0:
                 start = i
             depth += 1
-        elif ch == '}':
+        elif ch == "}":
             depth -= 1
             if depth == 0 and start >= 0:
-                return text[start:i+1]
-        elif ch == '[':
+                return text[start : i + 1]
+        elif ch == "[":
             if depth == 0:
                 start = i
             depth += 1
-        elif ch == ']':
+        elif ch == "]":
             depth -= 1
             if depth == 0 and start >= 0:
-                return text[start:i+1]
+                return text[start : i + 1]
 
     return None
 
@@ -191,9 +191,7 @@ def rescue_tool_call(text: str, valid_tools: set[str]) -> list[ToolCall] | None:
     # Strategy 3: Qwen <tool_call> XML
     # Format A (flat): <tool_call>tool_name\n{"args"}\n</tool_call>
     # Format B (nested): <tool_call>\n<tool_name>name</tool_name>\n<arguments>{"args"}</arguments>\n</tool_call>
-    qwen_match = re.search(
-        r"<tool_call>\s*(.*?)\s*</tool_call>", text, re.DOTALL
-    )
+    qwen_match = re.search(r"<tool_call>\s*(.*?)\s*</tool_call>", text, re.DOTALL)
     if qwen_match:
         inner = qwen_match.group(1).strip()
 
@@ -241,7 +239,9 @@ def rescue_tool_call(text: str, valid_tools: set[str]) -> list[ToolCall] | None:
     return None
 
 
-def _parse_json_tool_call(json_str: str, valid_tools: set[str]) -> list[ToolCall] | None:
+def _parse_json_tool_call(
+    json_str: str, valid_tools: set[str]
+) -> list[ToolCall] | None:
     """Try to parse a JSON tool call object or array."""
     try:
         data = json.loads(json_str)
@@ -265,7 +265,12 @@ def _parse_json_tool_call(json_str: str, valid_tools: set[str]) -> list[ToolCall
                     return [ToolCall(tool=name, args=args)]
 
         if name and name in valid_tools:
-            args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
+            args = (
+                data.get("arguments")
+                or data.get("args")
+                or data.get("parameters")
+                or {}
+            )
             if isinstance(args, str):
                 try:
                     args = json.loads(args)
@@ -278,9 +283,17 @@ def _parse_json_tool_call(json_str: str, valid_tools: set[str]) -> list[ToolCall
         result: list[ToolCall] = []
         for item in data:
             if isinstance(item, dict):
-                name = item.get("name") or item.get("tool") or item.get("function", {}).get("name", "")
+                name = (
+                    item.get("name")
+                    or item.get("tool")
+                    or item.get("function", {}).get("name", "")
+                )
                 if name and name in valid_tools:
-                    args = item.get("arguments") or item.get("args") or item.get("function", {}).get("arguments", {})
+                    args = (
+                        item.get("arguments")
+                        or item.get("args")
+                        or item.get("function", {}).get("arguments", {})
+                    )
                     if isinstance(args, str):
                         try:
                             args = json.loads(args)

@@ -15,14 +15,16 @@ def build_tool_prompt(tool_specs: list[ToolSpec]) -> str:
     tools_json = []
     for spec in tool_specs:
         param_schema = spec.get_json_schema()
-        tools_json.append({
-            "type": "function",
-            "function": {
-                "name": spec.name,
-                "description": spec.description,
-                "parameters": param_schema,
-            },
-        })
+        tools_json.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": spec.name,
+                    "description": spec.description,
+                    "parameters": param_schema,
+                },
+            }
+        )
     return json.dumps(tools_json, indent=2)
 
 
@@ -48,5 +50,3 @@ def extract_tool_call(text: str) -> dict[str, Any] | None:
             pass
 
     return None
-
-

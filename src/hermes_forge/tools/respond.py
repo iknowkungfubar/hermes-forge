@@ -13,6 +13,7 @@ RESPOND_TOOL_NAME = "respond"
 
 class RespondParams(BaseModel):
     """Parameters for the respond tool."""
+
     content: str = Field(description="The text response to return to the user.")
 
 

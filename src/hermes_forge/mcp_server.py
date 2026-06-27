@@ -64,8 +64,14 @@ def _serve_stdio() -> None:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "tool_name": {"type": "string", "description": "Name of the tool being called"},
-                        "arguments": {"type": "object", "description": "Arguments for the tool call"},
+                        "tool_name": {
+                            "type": "string",
+                            "description": "Name of the tool being called",
+                        },
+                        "arguments": {
+                            "type": "object",
+                            "description": "Arguments for the tool call",
+                        },
                         "available_tools": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -81,7 +87,10 @@ def _serve_stdio() -> None:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "text": {"type": "string", "description": "Raw LLM text response that may contain a malformed tool call"},
+                        "text": {
+                            "type": "string",
+                            "description": "Raw LLM text response that may contain a malformed tool call",
+                        },
                         "available_tools": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -97,7 +106,10 @@ def _serve_stdio() -> None:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "tool_name": {"type": "string", "description": "Name of the tool being called"},
+                        "tool_name": {
+                            "type": "string",
+                            "description": "Name of the tool being called",
+                        },
                         "completed_steps": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -114,7 +126,12 @@ def _serve_stdio() -> None:
                             "description": "Tools that end the workflow",
                         },
                     },
-                    "required": ["tool_name", "completed_steps", "required_steps", "terminal_tools"],
+                    "required": [
+                        "tool_name",
+                        "completed_steps",
+                        "required_steps",
+                        "terminal_tools",
+                    ],
                 },
             ),
             types.Tool(
@@ -123,9 +140,18 @@ def _serve_stdio() -> None:
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "message_count": {"type": "integer", "description": "Number of messages in the conversation"},
-                        "estimated_tokens": {"type": "integer", "description": "Estimated token count (optional, will be calculated from message_count if not provided)"},
-                        "budget_tokens": {"type": "integer", "description": "Context budget in tokens"},
+                        "message_count": {
+                            "type": "integer",
+                            "description": "Number of messages in the conversation",
+                        },
+                        "estimated_tokens": {
+                            "type": "integer",
+                            "description": "Estimated token count (optional, will be calculated from message_count if not provided)",
+                        },
+                        "budget_tokens": {
+                            "type": "integer",
+                            "description": "Context budget in tokens",
+                        },
                     },
                     "required": ["message_count", "budget_tokens"],
                 },
@@ -137,7 +163,10 @@ def _serve_stdio() -> None:
                     "type": "object",
                     "properties": {
                         "name": {"type": "string", "description": "Workflow name"},
-                        "description": {"type": "string", "description": "Workflow description"},
+                        "description": {
+                            "type": "string",
+                            "description": "Workflow description",
+                        },
                         "tools": {
                             "type": "array",
                             "items": {
@@ -159,13 +188,21 @@ def _serve_stdio() -> None:
                             "description": "The tool that ends the workflow",
                         },
                     },
-                    "required": ["name", "description", "tools", "required_steps", "terminal_tool"],
+                    "required": [
+                        "name",
+                        "description",
+                        "tools",
+                        "required_steps",
+                        "terminal_tool",
+                    ],
                 },
             ),
         ]
 
     @app.call_tool()
-    async def call_tool(name: str, arguments: dict[str, Any] | None) -> list[types.TextContent]:
+    async def call_tool(
+        name: str, arguments: dict[str, Any] | None
+    ) -> list[types.TextContent]:
         if arguments is None:
             arguments = {}
 
@@ -184,11 +221,17 @@ def _serve_stdio() -> None:
                 raise ValueError(f"Unknown tool: {name}")
         except (ValueError, TypeError) as e:
             import mcp.types as types
+
             return [types.TextContent(type="text", text=json.dumps({"error": str(e)}))]
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error in MCP tool call")
             import mcp.types as types
-            return [types.TextContent(type="text", text=json.dumps({"error": "Internal server error"}))]
+
+            return [
+                types.TextContent(
+                    type="text", text=json.dumps({"error": "Internal server error"})
+                )
+            ]
 
     async def run():
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
@@ -206,6 +249,7 @@ def _serve_stdio() -> None:
             )
 
     import asyncio
+
     asyncio.run(run())
 
 
@@ -231,21 +275,29 @@ def _validate_tool_call(args: dict) -> Any:
     if result.needs_retry:
         return types.TextContent(
             type="text",
-            text=json.dumps({
-                "valid": False,
-                "error": result.nudge.content if result.nudge else "Unknown validation error",
-                "tool_name": tool_name,
-                "available_tools": available_tools,
-            }, indent=2),
+            text=json.dumps(
+                {
+                    "valid": False,
+                    "error": result.nudge.content
+                    if result.nudge
+                    else "Unknown validation error",
+                    "tool_name": tool_name,
+                    "available_tools": available_tools,
+                },
+                indent=2,
+            ),
         )
 
     return types.TextContent(
         type="text",
-        text=json.dumps({
-            "valid": True,
-            "tool_name": tool_name,
-            "argument_count": len(arguments),
-        }, indent=2),
+        text=json.dumps(
+            {
+                "valid": True,
+                "tool_name": tool_name,
+                "argument_count": len(arguments),
+            },
+            indent=2,
+        ),
     )
 
 
@@ -259,15 +311,18 @@ def _rescue_tool_call(args: dict) -> Any:
     result = rescue(text, valid_tools)
 
     import mcp.types as types
+
     return types.TextContent(
         type="text",
-        text=json.dumps({
-            "rescued": result is not None,
-            "tool_calls": [
-                {"tool": tc.tool, "args": tc.args}
-                for tc in result
-            ] if result else [],
-        }, indent=2),
+        text=json.dumps(
+            {
+                "rescued": result is not None,
+                "tool_calls": [{"tool": tc.tool, "args": tc.args} for tc in result]
+                if result
+                else [],
+            },
+            indent=2,
+        ),
     )
 
 
@@ -280,13 +335,22 @@ def _rescue_tool_call_safe(args: dict) -> Any:
     if not isinstance(text, str):
         raise ValueError("'text' must be a string")
     if len(text) > _MAX_TEXT_LENGTH:
-        raise ValueError(f"'text' exceeds maximum length of {_MAX_TEXT_LENGTH} characters")
+        raise ValueError(
+            f"'text' exceeds maximum length of {_MAX_TEXT_LENGTH} characters"
+        )
     if not isinstance(available_tools, list):
         raise ValueError("'available_tools' must be a list")
     if len(available_tools) > _MAX_TOOL_LIST_LENGTH:
-        raise ValueError(f"'available_tools' exceeds maximum length of {_MAX_TOOL_LIST_LENGTH}")
-    if any(not isinstance(t, str) or len(t) > _MAX_TOOL_NAME_LENGTH for t in available_tools):
-        raise ValueError(f"Tool names must be strings under {_MAX_TOOL_NAME_LENGTH} characters")
+        raise ValueError(
+            f"'available_tools' exceeds maximum length of {_MAX_TOOL_LIST_LENGTH}"
+        )
+    if any(
+        not isinstance(t, str) or len(t) > _MAX_TOOL_NAME_LENGTH
+        for t in available_tools
+    ):
+        raise ValueError(
+            f"Tool names must be strings under {_MAX_TOOL_NAME_LENGTH} characters"
+        )
 
     return _rescue_tool_call(args)
 
@@ -309,21 +373,26 @@ def _check_step_ordering(args: dict) -> Any:
         enforcer.record(step, {})
 
     from hermes_forge.core.workflow import ToolCall
+
     tc = ToolCall(tool=tool_name, args={})
     result = enforcer.check([tc])
 
     pending = enforcer.pending()
 
     import mcp.types as types
+
     return types.TextContent(
         type="text",
-        text=json.dumps({
-            "can_proceed": not result.needs_nudge,
-            "pending_steps": pending,
-            "completed_steps": enforcer.completed_steps,
-            "all_required_done": enforcer.is_satisfied(),
-            "nudge": result.nudge.content if result.needs_nudge else None,
-        }, indent=2),
+        text=json.dumps(
+            {
+                "can_proceed": not result.needs_nudge,
+                "pending_steps": pending,
+                "completed_steps": enforcer.completed_steps,
+                "all_required_done": enforcer.is_satisfied(),
+                "nudge": result.nudge.content if result.needs_nudge else None,
+            },
+            indent=2,
+        ),
     )
 
 
@@ -344,15 +413,19 @@ def _estimate_context_budget(args: dict) -> Any:
             compaction_phase = 1
 
     import mcp.types as types
+
     return types.TextContent(
         type="text",
-        text=json.dumps({
-            "estimated_tokens": estimated_tokens,
-            "budget_tokens": budget_tokens,
-            "usage_pct": round(estimated_tokens / budget_tokens * 100, 1),
-            "needs_compaction": needs_compaction,
-            "recommended_compaction_phase": compaction_phase,
-        }, indent=2),
+        text=json.dumps(
+            {
+                "estimated_tokens": estimated_tokens,
+                "budget_tokens": budget_tokens,
+                "usage_pct": round(estimated_tokens / budget_tokens * 100, 1),
+                "needs_compaction": needs_compaction,
+                "recommended_compaction_phase": compaction_phase,
+            },
+            indent=2,
+        ),
     )
 
 
@@ -375,14 +448,18 @@ def _estimate_context_budget_safe(args: dict) -> Any:
 
 def _config_workflow(args: dict) -> Any:
     import mcp.types as types
+
     return types.TextContent(
         type="text",
-        text=json.dumps({
-            "workflow_name": args.get("name", ""),
-            "description": args.get("description", ""),
-            "tool_count": len(args.get("tools", [])),
-            "required_steps": args.get("required_steps", []),
-            "terminal_tool": args.get("terminal_tool", ""),
-            "status": "configured",
-        }, indent=2),
+        text=json.dumps(
+            {
+                "workflow_name": args.get("name", ""),
+                "description": args.get("description", ""),
+                "tool_count": len(args.get("tools", [])),
+                "required_steps": args.get("required_steps", []),
+                "terminal_tool": args.get("terminal_tool", ""),
+                "status": "configured",
+            },
+            indent=2,
+        ),
     )

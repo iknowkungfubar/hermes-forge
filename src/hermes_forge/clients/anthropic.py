@@ -52,7 +52,8 @@ class AnthropicClient(LLMClient):
         try:
             resp = await self._client.post(
                 f"{self._base_url}/messages",
-                json=payload, headers=headers,
+                json=payload,
+                headers=headers,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -79,8 +80,10 @@ class AnthropicClient(LLMClient):
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             try:
                 async with client.stream(
-                    "POST", f"{self._base_url}/messages",
-                    json=payload, headers=headers,
+                    "POST",
+                    f"{self._base_url}/messages",
+                    json=payload,
+                    headers=headers,
                 ) as resp:
                     async for line in resp.aiter_lines():
                         if line.startswith("data: "):
@@ -96,17 +99,29 @@ class AnthropicClient(LLMClient):
                             if event.get("type") == "content_block_delta":
                                 delta = event.get("delta", {})
                                 if delta.get("type") == "text_delta":
-                                    yield StreamChunk(type=ChunkType.TEXT, content=delta.get("text", ""))
+                                    yield StreamChunk(
+                                        type=ChunkType.TEXT,
+                                        content=delta.get("text", ""),
+                                    )
                                 elif delta.get("type") == "input_json_delta":
-                                    yield StreamChunk(type=ChunkType.TOOL_CALL, tool_args=delta.get("partial_json", ""))
+                                    yield StreamChunk(
+                                        type=ChunkType.TOOL_CALL,
+                                        tool_args=delta.get("partial_json", ""),
+                                    )
                             elif event.get("type") == "content_block_start":
                                 block = event.get("content_block", {})
                                 if block.get("type") == "tool_use":
-                                    yield StreamChunk(type=ChunkType.TOOL_CALL, tool_name=block.get("name", ""))
+                                    yield StreamChunk(
+                                        type=ChunkType.TOOL_CALL,
+                                        tool_name=block.get("name", ""),
+                                    )
                             elif event.get("type") == "message_delta":
                                 delta = event.get("delta", {})
                                 if delta.get("stop_reason"):
-                                    yield StreamChunk(type=ChunkType.DONE, finish_reason=delta["stop_reason"])
+                                    yield StreamChunk(
+                                        type=ChunkType.DONE,
+                                        finish_reason=delta["stop_reason"],
+                                    )
 
             except httpx.HTTPError as e:
                 logger.error("Anthropic stream error: %s", e)
@@ -149,16 +164,18 @@ class AnthropicClient(LLMClient):
             if role == "tool":
                 # Tool results in Anthropic are "user" messages with tool_result content
                 tool_call_id = msg.get("tool_call_id", "")
-                anthro_messages.append({
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_call_id,
-                            "content": content,
-                        }
-                    ],
-                })
+                anthro_messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_call_id,
+                                "content": content,
+                            }
+                        ],
+                    }
+                )
                 continue
 
             anthro_messages.append({"role": role, "content": content})
@@ -176,8 +193,12 @@ class AnthropicClient(LLMClient):
             payload["tools"] = [
                 {
                     "name": t.get("function", {}).get("name", t.get("name", "")),
-                    "description": t.get("function", {}).get("description", t.get("description", "")),
-                    "input_schema": t.get("function", {}).get("parameters", t.get("input_schema", {})),
+                    "description": t.get("function", {}).get(
+                        "description", t.get("description", "")
+                    ),
+                    "input_schema": t.get("function", {}).get(
+                        "parameters", t.get("input_schema", {})
+                    ),
                 }
                 for t in tools
             ]
@@ -194,7 +215,9 @@ class AnthropicClient(LLMClient):
         usage = TokenUsage(
             prompt_tokens=usage_data.get("input_tokens", 0),
             completion_tokens=usage_data.get("output_tokens", 0),
-            total_tokens=(usage_data.get("input_tokens", 0) + usage_data.get("output_tokens", 0)),
+            total_tokens=(
+                usage_data.get("input_tokens", 0) + usage_data.get("output_tokens", 0)
+            ),
         )
 
         content_blocks = data.get("content", [])
@@ -203,11 +226,13 @@ class AnthropicClient(LLMClient):
 
         for block in content_blocks:
             if block.get("type") == "tool_use":
-                tool_calls.append({
-                    "tool": block.get("name", ""),
-                    "args": block.get("input", {}),
-                    "id": block.get("id", ""),
-                })
+                tool_calls.append(
+                    {
+                        "tool": block.get("name", ""),
+                        "args": block.get("input", {}),
+                        "id": block.get("id", ""),
+                    }
+                )
             elif block.get("type") == "text":
                 text_content += block.get("text", "")
 

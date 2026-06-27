@@ -19,7 +19,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from hermes_forge.clients.base import LLMClient
 from hermes_forge.clients.ollama import OllamaClient
@@ -42,26 +42,27 @@ _SSRF_BLOCKLIST = re.compile(
 
 def _validate_backend_url(url: str | None) -> str | None:
     """Validate a backend URL to prevent SSRF attacks.
-    
+
     Returns the validated URL or None if invalid.
     Raises ValueError with a user-safe message on dangerous URLs.
     """
     if url is None:
         return None
-    
+
     # Basic URL structure check
     if not url.startswith(("http://", "https://")):
         raise ValueError("backend_url must start with http:// or https://")
-    
+
     # Block internal/private IPs and metadata endpoints
     if _SSRF_BLOCKLIST.search(url):
         raise ValueError("backend_url points to a blocked internal address")
-    
+
     # Limit URL length to prevent abuse
     if len(url) > 2048:
         raise ValueError("backend_url exceeds maximum length")
-    
+
     return url
+
 
 logger = logging.getLogger("forge.proxy")
 
@@ -103,7 +104,9 @@ class ProxyServer:
         timeout: float = 300.0,
     ) -> None:
         if backend_url is None and backend is None:
-            raise ValueError("Provide either backend_url (external) or backend (managed)")
+            raise ValueError(
+                "Provide either backend_url (external) or backend (managed)"
+            )
 
         self._host = host
         self._port = port
@@ -150,6 +153,7 @@ class ProxyServer:
 
         if backend_protocol == "anthropic":
             from hermes_forge.clients.anthropic import AnthropicClient
+
             client: LLMClient = AnthropicClient(
                 model=model or "claude-sonnet-4-20250514",
                 base_url=(backend_url or "https://api.anthropic.com/v1").rstrip("/"),
@@ -216,7 +220,9 @@ class ProxyServer:
 
         ready = threading.Event()
         self._thread = threading.Thread(
-            target=self._run_loop, args=(ready,), daemon=True,
+            target=self._run_loop,
+            args=(ready,),
+            daemon=True,
         )
         self._thread.start()
         ready.wait(timeout=30)
@@ -230,7 +236,9 @@ class ProxyServer:
         if not self._started or self._loop is None:
             return
 
-        asyncio.run_coroutine_threadsafe(self._async_stop(), self._loop).result(timeout=10)
+        asyncio.run_coroutine_threadsafe(self._async_stop(), self._loop).result(
+            timeout=10
+        )
         self._loop.call_soon_threadsafe(self._loop.stop)
         if self._thread is not None:
             self._thread.join(timeout=5)
@@ -272,12 +280,17 @@ class ProxyServer:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Forge proxy — OpenAI-compatible proxy with guardrails")
+    parser = argparse.ArgumentParser(
+        description="Forge proxy — OpenAI-compatible proxy with guardrails"
+    )
 
     # Mode
     parser.add_argument("--backend-url", help="URL of an externally managed backend")
-    parser.add_argument("--backend", choices=["llamaserver", "llamafile", "ollama", "vllm"],
-                        help="Backend type for managed mode")
+    parser.add_argument(
+        "--backend",
+        choices=["llamaserver", "llamafile", "ollama", "vllm"],
+        help="Backend type for managed mode",
+    )
 
     # Managed mode options
     parser.add_argument("--model", help="Model name (ollama)")
@@ -288,20 +301,35 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1", help="Listen host")
     parser.add_argument("--port", type=int, default=8081, help="Listen port")
     parser.add_argument("--max-retries", type=int, default=3, help="Max retries")
-    parser.add_argument("--max-tool-errors", type=int, default=2, help="Max tool errors")
-    parser.add_argument("--no-rescue", action="store_true", help="Disable rescue parsing")
-    parser.add_argument("--inject-respond-tool", action="store_true",
-                        help="Inject synthetic respond tool")
-    parser.add_argument("--budget-tokens", type=int, default=8192, help="Context budget")
+    parser.add_argument(
+        "--max-tool-errors", type=int, default=2, help="Max tool errors"
+    )
+    parser.add_argument(
+        "--no-rescue", action="store_true", help="Disable rescue parsing"
+    )
+    parser.add_argument(
+        "--inject-respond-tool",
+        action="store_true",
+        help="Inject synthetic respond tool",
+    )
+    parser.add_argument(
+        "--budget-tokens", type=int, default=8192, help="Context budget"
+    )
     parser.add_argument("--api-key", help="API key for the backend")
-    parser.add_argument("--backend-protocol", choices=["openai", "anthropic"], default="openai",
-                        help="Backend wire protocol")
+    parser.add_argument(
+        "--backend-protocol",
+        choices=["openai", "anthropic"],
+        default="openai",
+        help="Backend wire protocol",
+    )
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
     args = parser.parse_args()
 
     level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(level=level, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+    logging.basicConfig(
+        level=level, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s"
+    )
 
     proxy = ProxyServer(
         backend_url=args.backend_url,

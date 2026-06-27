@@ -19,30 +19,61 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
 
     # validate command
-    validate = sub.add_parser("validate", help="Validate a tool call against guardrails")
-    validate.add_argument("--tools", required=True, help="JSON file with tool definitions")
+    validate = sub.add_parser(
+        "validate", help="Validate a tool call against guardrails"
+    )
+    validate.add_argument(
+        "--tools", required=True, help="JSON file with tool definitions"
+    )
     validate.add_argument("--call", help="JSON tool call to validate (inline)")
     validate.add_argument("--call-file", help="JSON file with tool call to validate")
 
     # serve command (MCP server)
     serve = sub.add_parser("serve", help="Start the MCP server")
-    serve.add_argument("--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)")
-    serve.add_argument("--port", type=int, default=9876, help="Port to bind (default: 9876)")
-    serve.add_argument("--transport", choices=["stdio", "sse"], default="stdio", help="MCP transport (default: stdio)")
+    serve.add_argument(
+        "--host", default="127.0.0.1", help="Host to bind (default: 127.0.0.1)"
+    )
+    serve.add_argument(
+        "--port", type=int, default=9876, help="Port to bind (default: 9876)"
+    )
+    serve.add_argument(
+        "--transport",
+        choices=["stdio", "sse"],
+        default="stdio",
+        help="MCP transport (default: stdio)",
+    )
 
     # proxy command
     proxy = sub.add_parser("proxy", help="Start the guardrails proxy server")
     proxy.add_argument("--backend-url", help="URL of an externally managed backend")
-    proxy.add_argument("--backend", choices=["llamaserver", "llamafile", "ollama", "vllm"], help="Backend type")
+    proxy.add_argument(
+        "--backend",
+        choices=["llamaserver", "llamafile", "ollama", "vllm"],
+        help="Backend type",
+    )
     proxy.add_argument("--model", help="Model name (ollama)")
     proxy.add_argument("--gguf", help="Path to GGUF file")
     proxy.add_argument("--model-path", help="Model directory (vllm)")
-    proxy.add_argument("--host", default="127.0.0.1", help="Listen host (default: 127.0.0.1)")
-    proxy.add_argument("--port", type=int, default=8081, help="Listen port (default: 8081)")
-    proxy.add_argument("--max-retries", type=int, default=3, help="Max retries per request")
-    proxy.add_argument("--no-rescue", action="store_true", help="Disable rescue parsing")
-    proxy.add_argument("--inject-respond-tool", action="store_true", help="Inject synthetic respond tool")
-    proxy.add_argument("--budget-tokens", type=int, default=8192, help="Context budget in tokens")
+    proxy.add_argument(
+        "--host", default="127.0.0.1", help="Listen host (default: 127.0.0.1)"
+    )
+    proxy.add_argument(
+        "--port", type=int, default=8081, help="Listen port (default: 8081)"
+    )
+    proxy.add_argument(
+        "--max-retries", type=int, default=3, help="Max retries per request"
+    )
+    proxy.add_argument(
+        "--no-rescue", action="store_true", help="Disable rescue parsing"
+    )
+    proxy.add_argument(
+        "--inject-respond-tool",
+        action="store_true",
+        help="Inject synthetic respond tool",
+    )
+    proxy.add_argument(
+        "--budget-tokens", type=int, default=8192, help="Context budget in tokens"
+    )
     proxy.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
 
     args = parser.parse_args()
@@ -50,6 +81,7 @@ def main() -> None:
     if args.version:
         try:
             from hermes_forge import __version__
+
             print(f"hermes-forge v{__version__}")
         except ImportError:
             print("hermes-forge v0.1.0")
@@ -67,6 +99,7 @@ def main() -> None:
 
 def _cmd_validate(args: argparse.Namespace) -> None:
     """Validate a tool call against guardrails."""
+
     # Path sanitization: resolve to absolute path and verify it's within expected paths
     def _safe_path(p: str) -> str:
         resolved = os.path.abspath(os.path.normpath(p))
@@ -83,7 +116,9 @@ def _cmd_validate(args: argparse.Namespace) -> None:
         print("Error: Permission denied reading tools file", file=sys.stderr)
         sys.exit(1)
 
-    tool_names = [t.get("name") or t.get("function", {}).get("name") for t in tools_data]
+    tool_names = [
+        t.get("name") or t.get("function", {}).get("name") for t in tools_data
+    ]
 
     if args.call:
         try:
@@ -126,6 +161,7 @@ def _cmd_serve(args: argparse.Namespace) -> None:
     """Start the MCP server."""
     try:
         from hermes_forge.mcp_server import serve
+
         serve(host=args.host, port=args.port, transport=args.transport)
     except ImportError as e:
         print(f"Cannot start MCP server: {e}", file=sys.stderr)
@@ -152,6 +188,7 @@ def _cmd_proxy(args: argparse.Namespace) -> None:
             budget_tokens=args.budget_tokens,
         )
         import logging
+
         if args.verbose:
             logging.basicConfig(level=logging.DEBUG)
         proxy.start()
