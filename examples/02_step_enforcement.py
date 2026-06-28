@@ -7,6 +7,7 @@ prerequisite satisfaction.
 
 import sys
 import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from hermes_forge.core.workflow import ToolCall
@@ -56,7 +57,9 @@ def main():
     # Attempt 4: Follow the correct order
     print("\n--- Attempt 4: Correct order ---")
     guard._errors.reset_retries()
-    result = guard.check([ToolCall(tool="fetch_data", args={"source": "db", "table": "orders"})])
+    result = guard.check(
+        [ToolCall(tool="fetch_data", args={"source": "db", "table": "orders"})]
+    )
     if result.action == "execute":
         guard.record([("fetch_data", {"source": "db", "table": "orders"})])
         print("  ✅ fetch_data completed")

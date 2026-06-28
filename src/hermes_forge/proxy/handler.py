@@ -89,7 +89,10 @@ class RequestHandler:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "content": {"type": "string", "description": "The response text"},
+                            "content": {
+                                "type": "string",
+                                "description": "The response text",
+                            },
                         },
                         "required": ["content"],
                     },
@@ -120,7 +123,9 @@ class RequestHandler:
         retries = 0
         while retries <= self._max_retries:
             try:
-                response, usage = await self._client.send(openai_messages, tools=backend_tools)
+                response, usage = await self._client.send(
+                    openai_messages, tools=backend_tools
+                )
 
                 if self._is_tool_response(response):
                     # Apply guardrail validation
@@ -129,14 +134,25 @@ class RequestHandler:
 
                     if validation.needs_retry:
                         retries += 1
-                        logger.info("Guardrail retry %d/%d: %s", retries, self._max_retries,
-                                    validation.nudge.content if validation.nudge else "validation failed")
+                        logger.info(
+                            "Guardrail retry %d/%d: %s",
+                            retries,
+                            self._max_retries,
+                            validation.nudge.content
+                            if validation.nudge
+                            else "validation failed",
+                        )
                         # Add nudge as a user message
                         if validation.nudge:
-                            openai_messages.append({
-                                "role": "user" if validation.nudge.kind not in ("unknown_tool", "malformed_args") else "tool",
-                                "content": validation.nudge.content,
-                            })
+                            openai_messages.append(
+                                {
+                                    "role": "user"
+                                    if validation.nudge.kind
+                                    not in ("unknown_tool", "malformed_args")
+                                    else "tool",
+                                    "content": validation.nudge.content,
+                                }
+                            )
                         continue
 
                     # Build response
@@ -156,10 +172,17 @@ class RequestHandler:
                     return self._build_text_response(text_content, model, usage)
 
             except Exception as e:
-                logger.error("Backend error (attempt %d/%d): %s", retries + 1, self._max_retries + 1, e)
+                logger.error(
+                    "Backend error (attempt %d/%d): %s",
+                    retries + 1,
+                    self._max_retries + 1,
+                    e,
+                )
                 retries += 1
                 if retries > self._max_retries:
-                    return self._build_error_response(f"Backend error after {retries} attempts: {e}", model)
+                    return self._build_error_response(
+                        f"Backend error after {retries} attempts: {e}", model
+                    )
 
         # Fallback
         return self._build_error_response("Max retries exceeded", model)
@@ -170,12 +193,16 @@ class RequestHandler:
             return False
         return "tool" in response[0] or "tool_calls" in response[0]
 
-    def _parse_tool_calls(self, response: list[dict[str, Any]]) -> list[ToolCall] | TextResponse:
+    def _parse_tool_calls(
+        self, response: list[dict[str, Any]]
+    ) -> list[ToolCall] | TextResponse:
         """Parse backend response into forge ToolCall list or TextResponse."""
         tool_calls = []
         for item in response:
             if "tool" in item:
-                tool_calls.append(ToolCall(tool=item["tool"], args=item.get("args", {})))
+                tool_calls.append(
+                    ToolCall(tool=item["tool"], args=item.get("args", {}))
+                )
         if tool_calls:
             return tool_calls
         if response and "content" in response[0]:
@@ -209,7 +236,9 @@ class RequestHandler:
         ]
         return self._build_response_envelope(choices, model, usage)
 
-    def _build_text_response(self, content: str, model: str, usage: TokenUsage) -> dict[str, Any]:
+    def _build_text_response(
+        self, content: str, model: str, usage: TokenUsage
+    ) -> dict[str, Any]:
         choices = [
             {
                 "index": 0,
@@ -248,25 +277,27 @@ class RequestHandler:
         """Build a streaming response (single chunk with all tool calls)."""
         choices = []
         for i, tc in enumerate(tool_calls):
-            choices.append({
-                "index": i,
-                "delta": {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [
-                        {
-                            "index": i,
-                            "id": f"call_{i}",
-                            "type": "function",
-                            "function": {
-                                "name": tc.tool,
-                                "arguments": json.dumps(tc.args),
-                            },
-                        }
-                    ],
-                },
-                "finish_reason": "tool_calls" if i == len(tool_calls) - 1 else None,
-            })
+            choices.append(
+                {
+                    "index": i,
+                    "delta": {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": [
+                            {
+                                "index": i,
+                                "id": f"call_{i}",
+                                "type": "function",
+                                "function": {
+                                    "name": tc.tool,
+                                    "arguments": json.dumps(tc.args),
+                                },
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls" if i == len(tool_calls) - 1 else None,
+                }
+            )
 
         return self._build_response_envelope(choices, model, usage)
 
@@ -274,10 +305,12 @@ class RequestHandler:
     def _extract_respond_content(content: str) -> str | None:
         """If content wraps a synthetic respond call, extract inner content."""
         import re
+
         # Check for respond tool call pattern in content
         match = re.search(
             r'"name"\s*:\s*"respond".*?"content"\s*:\s*"([^"]+)"',
-            content, re.DOTALL,
+            content,
+            re.DOTALL,
         )
         if match:
             return match.group(1)

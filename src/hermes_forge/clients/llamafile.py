@@ -98,6 +98,8 @@ class LlamafileClient(LLMClient):
                 "content": messages[0]["content"] + tool_prompt,
             }
         else:
-            messages = [{"role": "system", "content": tool_prompt.strip()}] + list(messages)
+            messages = [{"role": "system", "content": tool_prompt.strip()}] + list(
+                messages
+            )
 
         return messages

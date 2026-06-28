@@ -77,7 +77,9 @@ class ServerManager:
         logger.info(f"Starting Ollama with model: {model_name}")
         result = subprocess.run(
             ["ollama", "list"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if result.returncode != 0:
             logger.warning("Ollama not running. Attempting to start...")
@@ -94,7 +96,9 @@ class ServerManager:
                 logger.info(f"Pulling model {model_str}...")
                 subprocess.run(
                     ["ollama", "pull", model_str],
-                    capture_output=True, text=True, timeout=300,
+                    capture_output=True,
+                    text=True,
+                    timeout=300,
                 )
 
     async def _start_llama_server(
@@ -114,9 +118,12 @@ class ServerManager:
 
         cmd = [
             "llama-server",
-            "-m", str(gguf),
-            "-ngl", "999",
-            "--port", str(self.port),
+            "-m",
+            str(gguf),
+            "-ngl",
+            "999",
+            "--port",
+            str(self.port),
         ]
         if mode == "native":
             cmd.append("--jinja")
@@ -143,9 +150,13 @@ class ServerManager:
             raise ValueError("model_path is required for vLLM backend")
 
         cmd = [
-            "python", "-m", "vllm.entrypoints.openai.api_server",
-            "--model", str(model_path),
-            "--port", str(self.port),
+            "python",
+            "-m",
+            "vllm.entrypoints.openai.api_server",
+            "--model",
+            str(model_path),
+            "--port",
+            str(self.port),
         ]
         if ctx_override:
             cmd.extend(["--max-model-len", str(ctx_override)])
@@ -201,9 +212,7 @@ class ServerManager:
                             data = resp.json()
                             models = data.get("data", [])
                             if models:
-                                self._context_length = models[0].get(
-                                    "max_model_len"
-                                )
+                                self._context_length = models[0].get("max_model_len")
                                 return
                     else:
                         return  # Ollama — assume healthy

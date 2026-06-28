@@ -48,7 +48,10 @@ class HermesForgePlugin:
                     "properties": {
                         "tool_name": {"type": "string"},
                         "arguments": {"type": "object"},
-                        "available_tools": {"type": "array", "items": {"type": "string"}},
+                        "available_tools": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                     },
                     "required": ["tool_name", "arguments", "available_tools"],
                 },
@@ -60,7 +63,10 @@ class HermesForgePlugin:
                     "type": "object",
                     "properties": {
                         "text": {"type": "string"},
-                        "available_tools": {"type": "array", "items": {"type": "string"}},
+                        "available_tools": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                     },
                     "required": ["text", "available_tools"],
                 },
@@ -74,10 +80,19 @@ class HermesForgePlugin:
                         "name": {"type": "string"},
                         "description": {"type": "string"},
                         "tools": {"type": "array"},
-                        "required_steps": {"type": "array", "items": {"type": "string"}},
+                        "required_steps": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
                         "terminal_tool": {"type": "string"},
                     },
-                    "required": ["name", "description", "tools", "required_steps", "terminal_tool"],
+                    "required": [
+                        "name",
+                        "description",
+                        "tools",
+                        "required_steps",
+                        "terminal_tool",
+                    ],
                 },
             },
         }
@@ -95,11 +110,13 @@ class HermesForgePlugin:
         validator = ResponseValidator(tool_names=available)
         result = validator.validate([ToolCall(tool=tool_name, args=arguments)])
 
-        return json.dumps({
-            "valid": not result.needs_retry,
-            "error": result.nudge.content if result.needs_retry else None,
-            "tool_name": tool_name,
-        })
+        return json.dumps(
+            {
+                "valid": not result.needs_retry,
+                "error": result.nudge.content if result.needs_retry else None,
+                "tool_name": tool_name,
+            }
+        )
 
     def _handle_rescue(self, params: dict[str, Any]) -> str:
         """Rescue malformed tool calls from text."""
@@ -110,13 +127,14 @@ class HermesForgePlugin:
         available = set(params.get("available_tools", []))
         result = rescue_tool_call(text, available)
 
-        return json.dumps({
-            "rescued": result is not None,
-            "tool_calls": [
-                {"tool": tc.tool, "args": tc.args}
-                for tc in result
-            ] if result else [],
-        })
+        return json.dumps(
+            {
+                "rescued": result is not None,
+                "tool_calls": [{"tool": tc.tool, "args": tc.args} for tc in result]
+                if result
+                else [],
+            }
+        )
 
     def _handle_config_workflow(self, params: dict[str, Any]) -> str:
         """Configure a workflow."""
@@ -131,11 +149,13 @@ class HermesForgePlugin:
             "terminal_tool": params.get("terminal_tool"),
         }
 
-        return json.dumps({
-            "status": "configured",
-            "workflow_id": workflow_id,
-            "tool_count": len(params.get("tools", [])),
-        })
+        return json.dumps(
+            {
+                "status": "configured",
+                "workflow_id": workflow_id,
+                "tool_count": len(params.get("tools", [])),
+            }
+        )
 
 
 # Plugin entry point — Hermes discovers this

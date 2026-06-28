@@ -11,7 +11,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType, ToolCallInfo
+from hermes_forge.core.messages import (
+    Message,
+    MessageMeta,
+    MessageRole,
+    MessageType,
+    ToolCallInfo,
+)
 
 
 def openai_to_forge(messages: list[dict[str, Any]]) -> list[Message]:
@@ -30,13 +36,19 @@ def openai_to_forge(messages: list[dict[str, Any]]) -> list[Message]:
 
         if role == "system":
             forge_messages.append(
-                Message(role=MessageRole.SYSTEM, content=content or "",
-                        metadata=MessageMeta(type=MessageType.SYSTEM_PROMPT))
+                Message(
+                    role=MessageRole.SYSTEM,
+                    content=content or "",
+                    metadata=MessageMeta(type=MessageType.SYSTEM_PROMPT),
+                )
             )
         elif role == "user":
             forge_messages.append(
-                Message(role=MessageRole.USER, content=content or "",
-                        metadata=MessageMeta(type=MessageType.USER_INPUT))
+                Message(
+                    role=MessageRole.USER,
+                    content=content or "",
+                    metadata=MessageMeta(type=MessageType.USER_INPUT),
+                )
             )
         elif role == "assistant":
             if tool_calls:
@@ -51,20 +63,30 @@ def openai_to_forge(messages: list[dict[str, Any]]) -> list[Message]:
                     tc_infos.append(tc_info)
 
                 forge_messages.append(
-                    Message(role=MessageRole.ASSISTANT, content=content or "",
-                            metadata=MessageMeta(type=MessageType.TOOL_CALL),
-                            tool_calls=tc_infos)
+                    Message(
+                        role=MessageRole.ASSISTANT,
+                        content=content or "",
+                        metadata=MessageMeta(type=MessageType.TOOL_CALL),
+                        tool_calls=tc_infos,
+                    )
                 )
             else:
                 forge_messages.append(
-                    Message(role=MessageRole.ASSISTANT, content=content or "",
-                            metadata=MessageMeta(type=MessageType.TEXT_RESPONSE))
+                    Message(
+                        role=MessageRole.ASSISTANT,
+                        content=content or "",
+                        metadata=MessageMeta(type=MessageType.TEXT_RESPONSE),
+                    )
                 )
         elif role == "tool":
             forge_messages.append(
-                Message(role=MessageRole.TOOL, content=content or "",
-                        metadata=MessageMeta(type=MessageType.TOOL_RESULT),
-                        tool_name=name, tool_call_id=tool_call_id)
+                Message(
+                    role=MessageRole.TOOL,
+                    content=content or "",
+                    metadata=MessageMeta(type=MessageType.TOOL_RESULT),
+                    tool_name=name,
+                    tool_call_id=tool_call_id,
+                )
             )
 
     return forge_messages
@@ -134,22 +156,31 @@ def build_tool_specs(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
             normalized.append(t)
         elif isinstance(t, dict) and all(k in t for k in ("name", "description")):
             # Forge ToolSpec-like format
-            normalized.append({
-                "type": "function",
-                "function": {
-                    "name": t["name"],
-                    "description": t.get("description", ""),
-                    "parameters": t.get("parameters", t.get("input_schema", {"type": "object", "properties": {}})),
-                },
-            })
+            normalized.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": t["name"],
+                        "description": t.get("description", ""),
+                        "parameters": t.get(
+                            "parameters",
+                            t.get("input_schema", {"type": "object", "properties": {}}),
+                        ),
+                    },
+                }
+            )
         else:
             # Try to normalize
-            normalized.append({
-                "type": "function",
-                "function": {
-                    "name": t.get("name", "unknown"),
-                    "description": t.get("description", ""),
-                    "parameters": t.get("parameters", {"type": "object", "properties": {}}),
-                },
-            })
+            normalized.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": t.get("name", "unknown"),
+                        "description": t.get("description", ""),
+                        "parameters": t.get(
+                            "parameters", {"type": "object", "properties": {}}
+                        ),
+                    },
+                }
+            )
     return normalized

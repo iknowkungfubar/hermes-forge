@@ -11,6 +11,7 @@ def _estimate_tokens(messages: list) -> int:
     """Estimate token count using tiktoken if available, fall back to char-based."""
     try:
         import tiktoken
+
         enc = tiktoken.get_encoding("cl100k_base")
         total = 0
         for m in messages:
@@ -31,8 +32,7 @@ class CompactStrategy(ABC):
         budget_tokens: int,
         *,
         step_hint: str = "",
-    ) -> tuple[list, int]:
-        ...
+    ) -> tuple[list, int]: ...
 
 
 class NoCompact(CompactStrategy):
@@ -109,7 +109,11 @@ class TieredCompact(CompactStrategy):
         if phase_thresholds is not None:
             self._phase_triggers = phase_thresholds
         else:
-            self._phase_triggers = (compact_threshold, compact_threshold, compact_threshold)
+            self._phase_triggers = (
+                compact_threshold,
+                compact_threshold,
+                compact_threshold,
+            )
 
     @staticmethod
     def _find_eligible_end(messages: list, keep_recent: int) -> int:
@@ -169,7 +173,12 @@ class TieredCompact(CompactStrategy):
     def _phase1(self, messages: list, eligible_end: int) -> list:
         result: list = []
         from hermes_forge.core.messages import MessageType
-        drop_types = {MessageType.STEP_NUDGE.value, MessageType.PREREQUISITE_NUDGE.value, MessageType.RETRY_NUDGE.value}
+
+        drop_types = {
+            MessageType.STEP_NUDGE.value,
+            MessageType.PREREQUISITE_NUDGE.value,
+            MessageType.RETRY_NUDGE.value,
+        }
         for i, msg in enumerate(messages):
             if 2 <= i < eligible_end:
                 if self._is_type(msg, *drop_types):
@@ -177,8 +186,12 @@ class TieredCompact(CompactStrategy):
                 if self._is_type(msg, MessageType.TOOL_RESULT.value):
                     if len(msg.content) > self.TRUNCATE_CHARS:
                         from copy import deepcopy
+
                         truncated = deepcopy(msg)
-                        truncated.content = msg.content[:self.TRUNCATE_CHARS] + f"\n[Truncated — {len(msg.content) - self.TRUNCATE_CHARS} chars removed]"
+                        truncated.content = (
+                            msg.content[: self.TRUNCATE_CHARS]
+                            + f"\n[Truncated — {len(msg.content) - self.TRUNCATE_CHARS} chars removed]"
+                        )
                         result.append(truncated)
                         continue
             result.append(msg)
@@ -187,9 +200,12 @@ class TieredCompact(CompactStrategy):
     def _phase2(self, messages: list, eligible_end: int) -> list:
         result: list = []
         from hermes_forge.core.messages import MessageType
+
         drop_types = {
-            MessageType.STEP_NUDGE.value, MessageType.PREREQUISITE_NUDGE.value,
-            MessageType.RETRY_NUDGE.value, MessageType.TOOL_RESULT.value,
+            MessageType.STEP_NUDGE.value,
+            MessageType.PREREQUISITE_NUDGE.value,
+            MessageType.RETRY_NUDGE.value,
+            MessageType.TOOL_RESULT.value,
         }
         for i, msg in enumerate(messages):
             if 2 <= i < eligible_end:
@@ -201,10 +217,14 @@ class TieredCompact(CompactStrategy):
     def _phase3(self, messages: list, eligible_end: int) -> list:
         result: list = []
         from hermes_forge.core.messages import MessageType
+
         drop_types = {
-            MessageType.STEP_NUDGE.value, MessageType.PREREQUISITE_NUDGE.value,
-            MessageType.RETRY_NUDGE.value, MessageType.TOOL_RESULT.value,
-            MessageType.REASONING.value, MessageType.TEXT_RESPONSE.value,
+            MessageType.STEP_NUDGE.value,
+            MessageType.PREREQUISITE_NUDGE.value,
+            MessageType.RETRY_NUDGE.value,
+            MessageType.TOOL_RESULT.value,
+            MessageType.REASONING.value,
+            MessageType.TEXT_RESPONSE.value,
         }
         for i, msg in enumerate(messages):
             if 2 <= i < eligible_end:

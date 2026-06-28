@@ -40,12 +40,18 @@ def _json_schema_to_type(
         sub_props = prop.get("properties", {})
         if sub_props:
             sub_required = set(prop.get("required", []))
-            return _build_model(sub_props, sub_required, f"{model_name_prefix}_{field_name.capitalize()}")
+            return _build_model(
+                sub_props,
+                sub_required,
+                f"{model_name_prefix}_{field_name.capitalize()}",
+            )
         return dict
     if json_type == "array":
         items = prop.get("items", {})
         if items:
-            item_type = _json_schema_to_type(items, field_name + "Item", model_name_prefix)
+            item_type = _json_schema_to_type(
+                items, field_name + "Item", model_name_prefix
+            )
             return list[item_type]  # type: ignore[valid-type]
         return list
     return Any  # type: ignore[return-value]
@@ -70,12 +76,16 @@ def _build_model(
             if default is not None:
                 fields[fname] = (
                     python_type | None,
-                    Field(default=default, description=description) if description else Field(default=default),
+                    Field(default=default, description=description)
+                    if description
+                    else Field(default=default),
                 )
             else:
                 fields[fname] = (
                     python_type | None,
-                    Field(default=None, description=description) if description else None,
+                    Field(default=None, description=description)
+                    if description
+                    else None,
                 )
     return create_model(model_name, **fields)  # type: ignore[call-overload]
 
@@ -122,6 +132,7 @@ class ToolDef:
 @dataclass
 class ToolCall:
     """Tool invocation returned by an LLM client."""
+
     tool: str
     args: Any
     reasoning: str | None = None
@@ -130,6 +141,7 @@ class ToolCall:
 @dataclass
 class TextResponse:
     """Non-tool-call response from the model."""
+
     content: str
 
 
@@ -139,6 +151,7 @@ LLMResponse = Union[list[ToolCall], TextResponse]
 @dataclass
 class InferenceResult:
     """Result from a single inference attempt (may include retries)."""
+
     response: LLMResponse
     attempts: int
     tool_call_counter: int
@@ -164,7 +177,9 @@ class Workflow:
             self.terminal_tools = frozenset(self.terminal_tool)
         for key, tool_def in self.tools.items():
             if key != tool_def.name:
-                raise ValueError(f"Tool key '{key}' does not match ToolDef name '{tool_def.name}'")
+                raise ValueError(
+                    f"Tool key '{key}' does not match ToolDef name '{tool_def.name}'"
+                )
         tool_names = set(self.tools.keys())
         for step in self.required_steps:
             if step not in tool_names:

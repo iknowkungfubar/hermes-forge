@@ -20,6 +20,7 @@ from hermes_forge.guardrails.step_enforcer import StepEnforcer
 @dataclass(frozen=True)
 class CheckResult:
     """Result of checking an LLM response against all guardrails."""
+
     action: Literal["execute", "retry", "tool_error", "step_blocked", "fatal"]
     tool_calls: list[ToolCall] | None = None
     nudge: Nudge | None = None
@@ -73,11 +74,16 @@ class Guardrails:
             if kind in TOOL_ERROR_KINDS:
                 self._errors.record_result(success=False)
                 if self._errors.tool_errors_exhausted:
-                    return CheckResult(action="fatal", reason="too many consecutive tool-argument errors")
+                    return CheckResult(
+                        action="fatal",
+                        reason="too many consecutive tool-argument errors",
+                    )
             else:
                 self._errors.record_retry()
                 if self._errors.retries_exhausted:
-                    return CheckResult(action="fatal", reason="too many consecutive bad responses")
+                    return CheckResult(
+                        action="fatal", reason="too many consecutive bad responses"
+                    )
             action = "tool_error" if kind in TOOL_CHANNEL_KINDS else "retry"
             return CheckResult(action=action, nudge=nudge)
 
@@ -85,7 +91,9 @@ class Guardrails:
         step_check = self._enforcer.check(validation.tool_calls)
         if step_check.needs_nudge:
             if self._enforcer.premature_exhausted:
-                return CheckResult(action="fatal", reason="model repeatedly skipped required steps")
+                return CheckResult(
+                    action="fatal", reason="model repeatedly skipped required steps"
+                )
             return CheckResult(action="step_blocked", nudge=step_check.nudge)
 
         return CheckResult(action="execute", tool_calls=validation.tool_calls)
@@ -105,7 +113,8 @@ class Guardrails:
         self._errors.reset_errors()
         self._enforcer.reset_premature()
         terminal_reached = any(
-            (entry if isinstance(entry, str) else entry[0]) in self._enforcer.terminal_tools
+            (entry if isinstance(entry, str) else entry[0])
+            in self._enforcer.terminal_tools
             for entry in executed
         )
         return self._enforcer.is_satisfied() and terminal_reached

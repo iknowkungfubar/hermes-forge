@@ -77,12 +77,16 @@ class OpenAICompatClient(LLMClient):
         )
 
         if message.get("tool_calls"):
-            return [self._normalize_tool_call(tc) for tc in message["tool_calls"]], usage
+            return [
+                self._normalize_tool_call(tc) for tc in message["tool_calls"]
+            ], usage
 
         # Text response
         content = message.get("content", "")
         reasoning = message.get("reasoning", None) or self._extract_reasoning(content)
-        return [{"role": "assistant", "content": content, "reasoning": reasoning}], usage
+        return [
+            {"role": "assistant", "content": content, "reasoning": reasoning}
+        ], usage
 
     async def send_stream(
         self,
@@ -106,8 +110,10 @@ class OpenAICompatClient(LLMClient):
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             try:
                 async with client.stream(
-                    "POST", f"{self._base_url}/chat/completions",
-                    json=payload, headers=headers,
+                    "POST",
+                    f"{self._base_url}/chat/completions",
+                    json=payload,
+                    headers=headers,
                 ) as resp:
                     async for line in resp.aiter_lines():
                         if not line.startswith("data: "):
@@ -159,7 +165,9 @@ class OpenAICompatClient(LLMClient):
             data = resp.json()
             models = data.get("data", [])
             if models:
-                return models[0].get("max_model_len", models[0].get("max_context_length"))
+                return models[0].get(
+                    "max_model_len", models[0].get("max_context_length")
+                )
         except Exception as e:
             logger.debug("Could not get context length: %s", e)
         return None
@@ -189,6 +197,7 @@ class OpenAICompatClient(LLMClient):
     def _extract_reasoning(content: str) -> str | None:
         """Extract <think> tags from content."""
         import re
+
         match = re.search(r"<think>(.*?)</think>", content, re.DOTALL)
         if match:
             return match.group(1).strip()

@@ -67,6 +67,7 @@ class VLLMClient(LLMClient):
             # If successful, we know the server is up
             # Re-discover with our own call
             import httpx
+
             base = self._openai._base_url.rstrip("/v1").rstrip("/")
             async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.get(f"{base}/v1/models")
