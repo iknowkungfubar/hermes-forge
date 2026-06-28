@@ -12,7 +12,10 @@ import os
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from hermes_forge.guardrails.response_validator import ResponseValidator, rescue_tool_call
+from hermes_forge.guardrails.response_validator import (
+    ResponseValidator,
+    rescue_tool_call,
+)
 from hermes_forge.core.workflow import ToolCall, TextResponse
 
 
@@ -29,13 +32,17 @@ def main():
     print("\n--- Test 1: Valid tool call ---")
     result = validator.validate([ToolCall(tool="get_weather", args={"city": "London"})])
     print("  Tool: get_weather(city='London')")
-    print(f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}")
+    print(
+        f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}"
+    )
 
     # Test 2: Unknown tool
     print("\n--- Test 2: Unknown tool ---")
     result = validator.validate([ToolCall(tool="delete_database", args={})])
     print("  Tool: delete_database()")
-    print(f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}")
+    print(
+        f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}"
+    )
     if result.needs_retry:
         print(f"  Error: {result.nudge.content if result.nudge else 'unknown error'}")
 
@@ -43,7 +50,9 @@ def main():
     print("\n--- Test 3: Malformed args ---")
     result = validator.validate([ToolCall(tool="get_weather", args="not_a_dict")])
     print("  Tool: get_weather(args='not_a_dict')")
-    print(f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}")
+    print(
+        f"  Valid: {not result.needs_retry} {'✅' if not result.needs_retry else '❌'}"
+    )
     if result.needs_retry:
         print(f"  Error: {result.nudge.content if result.nudge else 'malformed'}")
 

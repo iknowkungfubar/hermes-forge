@@ -114,8 +114,14 @@ class WorkflowRunner:
         if messages is None:
             rendered = workflow.build_system_prompt(**(prompt_vars or {}))
             messages = [
-                Message(MessageRole.SYSTEM, rendered, MessageMeta(MessageType.SYSTEM_PROMPT)),
-                Message(MessageRole.USER, user_message or "", MessageMeta(MessageType.USER_INPUT)),
+                Message(
+                    MessageRole.SYSTEM, rendered, MessageMeta(MessageType.SYSTEM_PROMPT)
+                ),
+                Message(
+                    MessageRole.USER,
+                    user_message or "",
+                    MessageMeta(MessageType.USER_INPUT),
+                ),
             ]
 
         tool_names = list(workflow.tools.keys())
@@ -141,8 +147,14 @@ class WorkflowRunner:
         # ── Main agentic loop ─────────────────────────────────────────
         while iteration < self.max_iterations:
             # Cancellation check
-            if cancel_event is not None and hasattr(cancel_event, "is_set") and cancel_event.is_set():
-                logger.info("Workflow '%s' cancelled at iteration %d", workflow.name, iteration)
+            if (
+                cancel_event is not None
+                and hasattr(cancel_event, "is_set")
+                and cancel_event.is_set()
+            ):
+                logger.info(
+                    "Workflow '%s' cancelled at iteration %d", workflow.name, iteration
+                )
                 break
 
             # Context compaction
@@ -150,16 +162,21 @@ class WorkflowRunner:
                 should_compact, _ = self.context_manager.should_compact(messages)
                 if should_compact:
                     messages = self.context_manager.compact(
-                        messages, step_hint=step_enforcer.summary_hint(),
+                        messages,
+                        step_hint=step_enforcer.summary_hint(),
                     )
 
             # Serialize messages and build tool definitions
             oai_messages = forge_to_openai(messages)
-            oai_tools = _build_openai_tools(workflow.get_tool_specs()) if tool_names else None
+            oai_tools = (
+                _build_openai_tools(workflow.get_tool_specs()) if tool_names else None
+            )
 
             # ── Call the LLM ──────────────────────────────────────────
             try:
-                response_data, token_usage = await self._llm_client.send(oai_messages, oai_tools)
+                response_data, token_usage = await self._llm_client.send(
+                    oai_messages, oai_tools
+                )
             except Exception as exc:
                 logger.error("LLM call failed at iteration %d: %s", iteration, exc)
                 raise ToolExecutionError("__llm__", cause=exc) from exc
@@ -182,27 +199,41 @@ class WorkflowRunner:
                     for tc in response_data
                 ]
                 result = await self._handle_tool_calls(
-                    workflow, tool_calls, messages,
-                    step_enforcer, validator, error_tracker,
+                    workflow,
+                    tool_calls,
+                    messages,
+                    step_enforcer,
+                    validator,
+                    error_tracker,
                 )
                 if result is not None:
                     terminal_result = result
                     break
 
             # Case 2 — text / assistant response  (may embed a tool call)
-            elif isinstance(first, dict) and ("content" in first or first.get("role") == "assistant"):
+            elif isinstance(first, dict) and (
+                "content" in first or first.get("role") == "assistant"
+            ):
                 text = first.get("content", "")
 
                 # Record the assistant message for context
                 messages.append(
-                    Message(MessageRole.ASSISTANT, text, MessageMeta(MessageType.TEXT_RESPONSE))
+                    Message(
+                        MessageRole.ASSISTANT,
+                        text,
+                        MessageMeta(MessageType.TEXT_RESPONSE),
+                    )
                 )
 
                 if not text.strip():
-                    messages.append(_nudge("retry", "The LLM returned an empty response."))
+                    messages.append(
+                        _nudge("retry", "The LLM returned an empty response.")
+                    )
                     error_tracker.record_retry()
                     if error_tracker.retries_exhausted:
-                        raise ToolCallError("Empty LLM responses exhausted the retry limit")
+                        raise ToolCallError(
+                            "Empty LLM responses exhausted the retry limit"
+                        )
                     iteration += 1
                     continue
 
@@ -210,7 +241,10 @@ class WorkflowRunner:
                 inference_result = run_inference(text, tools=tool_names)
 
                 if inference_result.needs_retry:
-                    reason = inference_result.retry_reason or "Please respond with a valid tool call."
+                    reason = (
+                        inference_result.retry_reason
+                        or "Please respond with a valid tool call."
+                    )
                     messages.append(_nudge("retry", reason))
                     error_tracker.record_retry()
                     if error_tracker.retries_exhausted:
@@ -221,8 +255,12 @@ class WorkflowRunner:
                 if inference_result.tool_calls:
                     # Rescue succeeded — treat as tool-call response
                     result = await self._handle_tool_calls(
-                        workflow, inference_result.tool_calls, messages,
-                        step_enforcer, validator, error_tracker,
+                        workflow,
+                        inference_result.tool_calls,
+                        messages,
+                        step_enforcer,
+                        validator,
+                        error_tracker,
                     )
                     if result is not None:
                         terminal_result = result
@@ -235,18 +273,28 @@ class WorkflowRunner:
                         )
                         error_tracker.record_retry()
                         if error_tracker.retries_exhausted:
-                            raise ToolCallError("Text responses exhausted the retry limit")
+                            raise ToolCallError(
+                                "Text responses exhausted the retry limit"
+                            )
                     else:
                         terminal_result = text
                         break
 
             # Case 3 — unrecognised format
             else:
-                logger.warning("Unexpected LLM response format at iteration %d: %s", iteration, first)
-                messages.append(_nudge("retry", "Unexpected response format from the LLM."))
+                logger.warning(
+                    "Unexpected LLM response format at iteration %d: %s",
+                    iteration,
+                    first,
+                )
+                messages.append(
+                    _nudge("retry", "Unexpected response format from the LLM.")
+                )
                 error_tracker.record_retry()
                 if error_tracker.retries_exhausted:
-                    raise ToolCallError("Malformed LLM responses exhausted the retry limit")
+                    raise ToolCallError(
+                        "Malformed LLM responses exhausted the retry limit"
+                    )
 
             iteration += 1
 
@@ -279,7 +327,9 @@ class WorkflowRunner:
         if validation.needs_retry:
             nudge = validation.nudge
             kind = nudge.kind if nudge else "retry"
-            content = nudge.content if nudge else "Invalid tool call — please try again."
+            content = (
+                nudge.content if nudge else "Invalid tool call — please try again."
+            )
             messages.append(_nudge(kind, content))
             error_tracker.record_retry()
             if error_tracker.retries_exhausted:
@@ -358,14 +408,16 @@ def _build_openai_tools(tool_specs: list[ToolSpec]) -> list[dict[str, Any]]:
     """Convert forge ``ToolSpec`` objects to OpenAI-compatible tool definitions."""
     tools: list[dict[str, Any]] = []
     for spec in tool_specs:
-        tools.append({
-            "type": "function",
-            "function": {
-                "name": spec.name,
-                "description": spec.description,
-                "parameters": spec.get_json_schema(),
-            },
-        })
+        tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": spec.name,
+                    "description": spec.description,
+                    "parameters": spec.get_json_schema(),
+                },
+            }
+        )
     return tools
 
 

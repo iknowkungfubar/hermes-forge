@@ -52,9 +52,7 @@ class OllamaClient(LLMClient):
         payload.update(kwargs)
 
         try:
-            resp = await self._client.post(
-                f"{self._base_url}/api/chat", json=payload
-            )
+            resp = await self._client.post(f"{self._base_url}/api/chat", json=payload)
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPError as e:
@@ -71,15 +69,19 @@ class OllamaClient(LLMClient):
             result = []
             for tc in data["tool_calls"]:
                 fn = tc.get("function", {})
-                result.append({
-                    "tool": fn.get("name", ""),
-                    "args": fn.get("arguments", {}),
-                })
+                result.append(
+                    {
+                        "tool": fn.get("name", ""),
+                        "args": fn.get("arguments", {}),
+                    }
+                )
             return result, usage
 
         content = data.get("message", {}).get("content", "")
         reasoning = self._extract_reasoning(content)
-        return [{"role": "assistant", "content": content, "reasoning": reasoning}], usage
+        return [
+            {"role": "assistant", "content": content, "reasoning": reasoning}
+        ], usage
 
     async def send_stream(
         self,
@@ -111,7 +113,10 @@ class OllamaClient(LLMClient):
                             continue
 
                         if chunk.get("done"):
-                            yield StreamChunk(type=ChunkType.DONE, finish_reason=chunk.get("done_reason"))
+                            yield StreamChunk(
+                                type=ChunkType.DONE,
+                                finish_reason=chunk.get("done_reason"),
+                            )
                             return
 
                         if chunk.get("tool_calls"):
@@ -125,9 +130,13 @@ class OllamaClient(LLMClient):
 
                         msg = chunk.get("message", {})
                         if msg.get("content"):
-                            yield StreamChunk(type=ChunkType.TEXT, content=msg["content"])
+                            yield StreamChunk(
+                                type=ChunkType.TEXT, content=msg["content"]
+                            )
                         if msg.get("reasoning"):
-                            yield StreamChunk(type=ChunkType.REASONING, content=msg["reasoning"])
+                            yield StreamChunk(
+                                type=ChunkType.REASONING, content=msg["reasoning"]
+                            )
 
             except httpx.HTTPError as e:
                 logger.error("Ollama stream error: %s", e)
@@ -142,6 +151,7 @@ class OllamaClient(LLMClient):
     @staticmethod
     def _extract_reasoning(content: str) -> str | None:
         import re
+
         match = re.search(r"<think>(.*?)</think>", content, re.DOTALL)
         if match:
             return match.group(1).strip()

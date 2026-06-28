@@ -4,26 +4,52 @@ Advanced tests covering edge cases, proxy, clients, converters, and security.
 
 import pytest
 from hermes_forge.core.messages import (
-    Message, MessageMeta, MessageRole, MessageType,
+    Message,
+    MessageMeta,
+    MessageRole,
+    MessageType,
 )
-from hermes_forge.core.workflow import TextResponse, ToolCall, ToolSpec, ToolDef, Workflow
-from hermes_forge.guardrails.response_validator import ResponseValidator, rescue_tool_call
+from hermes_forge.core.workflow import (
+    TextResponse,
+    ToolCall,
+    ToolSpec,
+    ToolDef,
+    Workflow,
+)
+from hermes_forge.guardrails.response_validator import (
+    ResponseValidator,
+    rescue_tool_call,
+)
 from hermes_forge.guardrails.step_enforcer import StepEnforcer
 from hermes_forge.guardrails.guardrails import Guardrails
 from hermes_forge.context.manager import ContextManager
-from hermes_forge.context.strategies import NoCompact, SlidingWindowCompact, TieredCompact
+from hermes_forge.context.strategies import (
+    NoCompact,
+    SlidingWindowCompact,
+    TieredCompact,
+)
 from hermes_forge.proxy.convert import (
-    openai_to_forge, forge_to_openai, extract_tool_calls, build_tool_specs,
+    openai_to_forge,
+    forge_to_openai,
+    extract_tool_calls,
+    build_tool_specs,
 )
 from hermes_forge.errors import (
-    ForgeError, ToolCallError, ToolExecutionError, StepEnforcementError,
-    PrerequisiteError, MaxIterationsError, BudgetResolutionError, BackendError,
+    ForgeError,
+    ToolCallError,
+    ToolExecutionError,
+    StepEnforcementError,
+    PrerequisiteError,
+    MaxIterationsError,
+    BudgetResolutionError,
+    BackendError,
 )
 
 
 # ═══════════════════════════════════════════════════════════════
 # EDGE CASE TESTS — Rescue Parsing
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestRescueParsingEdgeCases:
     """Test rescue parsing with edge cases."""
@@ -41,13 +67,17 @@ class TestRescueParsingEdgeCases:
         assert calls[0].args["nested"]["deep"]["value"] == 42
 
     def test_array_args(self):
-        text = '```json {"name": "batch_process", "arguments": {"items": [1, 2, 3]}} ```'
+        text = (
+            '```json {"name": "batch_process", "arguments": {"items": [1, 2, 3]}} ```'
+        )
         calls = rescue_tool_call(text, {"batch_process"})
         assert calls is not None
         assert calls[0].args["items"] == [1, 2, 3]
 
     def test_mistral_with_reasoning_prefix(self):
-        text = "I'll look up the weather.\n[TOOL_CALLS] get_weather({\"city\": \"London\"})"
+        text = (
+            'I\'ll look up the weather.\n[TOOL_CALLS] get_weather({"city": "London"})'
+        )
         calls = rescue_tool_call(text, {"get_weather"})
         assert calls is not None
         assert calls[0].args["city"] == "London"
@@ -100,6 +130,7 @@ class TestRescueParsingEdgeCases:
 # EDGE CASE TESTS — StepEnforcer
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestStepEnforcerEdgeCases:
     def test_no_required_steps(self):
         enforcer = StepEnforcer(required_steps=[], terminal_tools=frozenset(["done"]))
@@ -128,12 +159,16 @@ class TestStepEnforcerEdgeCases:
         # Check terminal without login having been called
         enforcer.record("terminal", {"user": "admin"})
         # prereq check: login with match_arg="user" was not called
-        result = enforcer.check_prerequisites([ToolCall(tool="terminal", args={"user": "admin"})])
+        result = enforcer.check_prerequisites(
+            [ToolCall(tool="terminal", args={"user": "admin"})]
+        )
         # Should be blocked because login(user=admin) was not called
         assert result.needs_nudge
 
     def test_duplicate_step_recording(self):
-        enforcer = StepEnforcer(required_steps=["step_a"], terminal_tools=frozenset(["done"]))
+        enforcer = StepEnforcer(
+            required_steps=["step_a"], terminal_tools=frozenset(["done"])
+        )
         enforcer.record("step_a", {})
         enforcer.record("step_a", {})  # duplicate
         assert enforcer.is_satisfied()
@@ -151,7 +186,9 @@ class TestStepEnforcerEdgeCases:
         assert "c" in hint
 
     def test_summary_hint_all_complete(self):
-        enforcer = StepEnforcer(required_steps=["a"], terminal_tools=frozenset(["done"]))
+        enforcer = StepEnforcer(
+            required_steps=["a"], terminal_tools=frozenset(["done"])
+        )
         enforcer.record("a", {})
         hint = enforcer.summary_hint()
         assert "All required steps completed" in hint
@@ -172,16 +209,23 @@ class TestStepEnforcerEdgeCases:
 # EDGE CASE TESTS — Context Compaction
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestCompactionEdgeCases:
     def test_tiered_phase_1_only(self):
-        strategy = TieredCompact(keep_recent=1, compact_threshold=0.5, phase_thresholds=(0.1, 1.0, 1.0))
+        strategy = TieredCompact(
+            keep_recent=1, compact_threshold=0.5, phase_thresholds=(0.1, 1.0, 1.0)
+        )
         messages = [
             Message(role=MessageRole.SYSTEM, content="sys"),
             Message(role=MessageRole.USER, content="user"),
         ]
         for i in range(5):
             messages.append(
-                Message(role=MessageRole.ASSISTANT, content=f"msg_{i}", metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i))
+                Message(
+                    role=MessageRole.ASSISTANT,
+                    content=f"msg_{i}",
+                    metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i),
+                )
             )
 
         result, phase = strategy.compact(messages, 50)
@@ -195,13 +239,19 @@ class TestCompactionEdgeCases:
         ]
         for i in range(10):
             messages.append(
-                Message(role=MessageRole.ASSISTANT, content="x" * 200,
-                        metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i))
+                Message(
+                    role=MessageRole.ASSISTANT,
+                    content="x" * 200,
+                    metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i),
+                )
             )
             messages.append(
-                Message(role=MessageRole.TOOL, content=f"result_{i}" * 100,
-                        metadata=MessageMeta(MessageType.TOOL_RESULT, step_index=i),
-                        tool_name="tool")
+                Message(
+                    role=MessageRole.TOOL,
+                    content=f"result_{i}" * 100,
+                    metadata=MessageMeta(MessageType.TOOL_RESULT, step_index=i),
+                    tool_name="tool",
+                )
             )
 
         result, phase = strategy.compact(messages, 1000)
@@ -215,8 +265,11 @@ class TestCompactionEdgeCases:
         ]
         for i in range(20):
             messages.append(
-                Message(role=MessageRole.ASSISTANT, content=f"iteration_{i}" * 50,
-                        metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i))
+                Message(
+                    role=MessageRole.ASSISTANT,
+                    content=f"iteration_{i}" * 50,
+                    metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i),
+                )
             )
 
         result, phase = strategy.compact(messages, 500)
@@ -248,8 +301,11 @@ class TestCompactionEdgeCases:
         ]
         for i in range(5):
             messages.append(
-                Message(role=MessageRole.ASSISTANT, content="x" * 100,
-                        metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i))
+                Message(
+                    role=MessageRole.ASSISTANT,
+                    content="x" * 100,
+                    metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i),
+                )
             )
 
         # Should trigger compaction
@@ -260,6 +316,7 @@ class TestCompactionEdgeCases:
 # ═══════════════════════════════════════════════════════════════
 # EDGE CASE TESTS — Guardrails
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestGuardrailsEdgeCases:
     def test_record_with_terminal_happy_path(self):
@@ -299,6 +356,7 @@ class TestGuardrailsEdgeCases:
             max_premature_attempts=2,
         )
         from hermes_forge.core.workflow import ToolCall
+
         guard.check([ToolCall(tool="terminal", args={})])
         guard.check([ToolCall(tool="terminal", args={})])
         result = guard.check([ToolCall(tool="terminal", args={})])
@@ -317,6 +375,7 @@ class TestGuardrailsEdgeCases:
 # EDGE CASE TESTS — Message Conversion
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestMessageConversion:
     def test_openai_to_forge_system(self):
         oai = [{"role": "system", "content": "You are a helpful assistant."}]
@@ -325,17 +384,22 @@ class TestMessageConversion:
         assert forge[0].role == MessageRole.SYSTEM
 
     def test_openai_to_forge_tool_calls(self):
-        oai = [{
-            "role": "assistant",
-            "content": "",
-            "tool_calls": [
-                {
-                    "id": "call_1",
-                    "type": "function",
-                    "function": {"name": "get_weather", "arguments": '{"city": "London"}'},
-                }
-            ],
-        }]
+        oai = [
+            {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call_1",
+                        "type": "function",
+                        "function": {
+                            "name": "get_weather",
+                            "arguments": '{"city": "London"}',
+                        },
+                    }
+                ],
+            }
+        ]
         forge = openai_to_forge(oai)
         assert len(forge) == 1
         assert forge[0].metadata.type == MessageType.TOOL_CALL
@@ -367,13 +431,21 @@ class TestMessageConversion:
         assert extract_tool_calls(msg) is None
 
     def test_build_tool_specs_openai_format(self):
-        tools = [{"type": "function", "function": {"name": "test", "description": "desc"}}]
+        tools = [
+            {"type": "function", "function": {"name": "test", "description": "desc"}}
+        ]
         specs = build_tool_specs(tools)
         assert len(specs) == 1
         assert specs[0]["function"]["name"] == "test"
 
     def test_build_tool_specs_forge_format(self):
-        tools = [{"name": "forge_tool", "description": "A forge tool", "parameters": {"type": "object"}}]
+        tools = [
+            {
+                "name": "forge_tool",
+                "description": "A forge tool",
+                "parameters": {"type": "object"},
+            }
+        ]
         specs = build_tool_specs(tools)
         assert len(specs) == 1
 
@@ -381,6 +453,7 @@ class TestMessageConversion:
 # ═══════════════════════════════════════════════════════════════
 # EDGE CASE TESTS — Errors
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestErrorTypes:
     def test_forge_error_base(self):
@@ -437,6 +510,7 @@ class TestErrorTypes:
 # EDGE CASE TESTS — Workflow Validation
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestWorkflowEdgeCases:
     def test_terminal_tool_frozenset(self):
         from pydantic import BaseModel
@@ -446,11 +520,18 @@ class TestWorkflowEdgeCases:
 
         def f():
             return ""
+
         wf = Workflow(
             name="test",
             description="test",
-            tools={"a": ToolDef(spec=ToolSpec(name="a", description="a", parameters=P), callable=f),
-                   "b": ToolDef(spec=ToolSpec(name="b", description="b", parameters=P), callable=f)},
+            tools={
+                "a": ToolDef(
+                    spec=ToolSpec(name="a", description="a", parameters=P), callable=f
+                ),
+                "b": ToolDef(
+                    spec=ToolSpec(name="b", description="b", parameters=P), callable=f
+                ),
+            },
             required_steps=[],
             terminal_tool=["a", "b"],
             system_prompt_template="test",
@@ -466,11 +547,19 @@ class TestWorkflowEdgeCases:
 
         def f():
             return ""
+
         with pytest.raises(ValueError, match="cannot also be a required step"):
             Workflow(
-                name="test", description="test",
-                tools={"a": ToolDef(spec=ToolSpec(name="a", description="a", parameters=P), callable=f)},
-                required_steps=["a"], terminal_tool="a",
+                name="test",
+                description="test",
+                tools={
+                    "a": ToolDef(
+                        spec=ToolSpec(name="a", description="a", parameters=P),
+                        callable=f,
+                    )
+                },
+                required_steps=["a"],
+                terminal_tool="a",
                 system_prompt_template="test",
             )
 
@@ -482,12 +571,20 @@ class TestWorkflowEdgeCases:
 
         def f():
             return ""
+
         with pytest.raises((ValueError, KeyError)):
             Workflow(
-                name="test", description="test",
-                tools={"a": ToolDef(spec=ToolSpec(name="a", description="a", parameters=P), callable=f,
-                                    prerequisites=["nonexistent"])},
-                required_steps=[], terminal_tool="a",
+                name="test",
+                description="test",
+                tools={
+                    "a": ToolDef(
+                        spec=ToolSpec(name="a", description="a", parameters=P),
+                        callable=f,
+                        prerequisites=["nonexistent"],
+                    )
+                },
+                required_steps=[],
+                terminal_tool="a",
                 system_prompt_template="test",
             )
 
@@ -495,6 +592,7 @@ class TestWorkflowEdgeCases:
 # ═══════════════════════════════════════════════════════════════
 # SECURITY EDGE CASE TESTS
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestSecurityEdgeCases:
     def test_rescue_prevents_injection_via_tool_name(self):
@@ -508,7 +606,9 @@ class TestSecurityEdgeCases:
         validator = ResponseValidator(tool_names=["tool"])
         huge_args = {"data": "x" * 100000}
         result = validator.validate([ToolCall(tool="tool", args=huge_args)])
-        assert not result.needs_retry  # Should pass — size isn't validated but shouldn't crash
+        assert (
+            not result.needs_retry
+        )  # Should pass — size isn't validated but shouldn't crash
 
     def test_empty_tool_name(self):
         validator = ResponseValidator(tool_names=["valid"])
@@ -517,7 +617,9 @@ class TestSecurityEdgeCases:
 
     def test_nan_inf_values_in_args(self):
         validator = ResponseValidator(tool_names=["tool"])
-        result = validator.validate([ToolCall(tool="tool", args={"value": float('inf')})])
+        result = validator.validate(
+            [ToolCall(tool="tool", args={"value": float("inf")})]
+        )
         # Should not crash — just pass through
         assert not result.needs_retry
 

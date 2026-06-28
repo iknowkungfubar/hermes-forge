@@ -25,6 +25,7 @@ class ChunkType(str, Enum):
 @dataclass
 class StreamChunk:
     """A single chunk from a streaming LLM response."""
+
     type: ChunkType
     content: str = ""
     tool_name: str | None = None
@@ -35,6 +36,7 @@ class StreamChunk:
 @dataclass
 class TokenUsage:
     """Token usage information from an LLM response."""
+
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0

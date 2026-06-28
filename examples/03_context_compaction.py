@@ -6,11 +6,16 @@ Demonstrates how Forge manages context budgets in long-running workflows.
 
 import sys
 import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType
 from hermes_forge.context.manager import ContextManager
-from hermes_forge.context.strategies import TieredCompact, SlidingWindowCompact, NoCompact
+from hermes_forge.context.strategies import (
+    TieredCompact,
+    SlidingWindowCompact,
+    NoCompact,
+)
 
 
 def main():
@@ -21,20 +26,33 @@ def main():
     # Build a simulated conversation history
     def build_conversation(turns=20):
         messages = [
-            Message(role=MessageRole.SYSTEM, content="You are a helpful assistant.",
-                    metadata=MessageMeta(MessageType.SYSTEM_PROMPT)),
-            Message(role=MessageRole.USER, content="Help me analyze this dataset.",
-                    metadata=MessageMeta(MessageType.USER_INPUT)),
+            Message(
+                role=MessageRole.SYSTEM,
+                content="You are a helpful assistant.",
+                metadata=MessageMeta(MessageType.SYSTEM_PROMPT),
+            ),
+            Message(
+                role=MessageRole.USER,
+                content="Help me analyze this dataset.",
+                metadata=MessageMeta(MessageType.USER_INPUT),
+            ),
         ]
         for i in range(turns):
             messages.append(
-                Message(role=MessageRole.ASSISTANT, content=f"Step {i}: Processing data with very long response... " + "x" * 200,
-                        metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i))
+                Message(
+                    role=MessageRole.ASSISTANT,
+                    content=f"Step {i}: Processing data with very long response... "
+                    + "x" * 200,
+                    metadata=MessageMeta(MessageType.TEXT_RESPONSE, step_index=i),
+                )
             )
             messages.append(
-                Message(role=MessageRole.TOOL, content=f"Result {i}: " + "y" * 300,
-                        metadata=MessageMeta(MessageType.TOOL_RESULT, step_index=i),
-                        tool_name="process")
+                Message(
+                    role=MessageRole.TOOL,
+                    content=f"Result {i}: " + "y" * 300,
+                    metadata=MessageMeta(MessageType.TOOL_RESULT, step_index=i),
+                    tool_name="process",
+                )
             )
         return messages
 

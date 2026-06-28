@@ -15,6 +15,7 @@ from hermes_forge.guardrails.nudge import Nudge
 @dataclass
 class StepCheck:
     """Result of check() — does the model need a nudge?"""
+
     needs_nudge: bool = False
     nudge: Nudge | None = None
 

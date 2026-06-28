@@ -136,7 +136,9 @@ def _try_parse_json_tool_calls(
         # {"tool": "...", "args": {...}}
         tool = data.get("tool") or data.get("action") or ""
         if tool in valid_tools:
-            args = data.get("args") or data.get("parameters") or data.get("params") or {}
+            args = (
+                data.get("args") or data.get("parameters") or data.get("params") or {}
+            )
             if isinstance(args, dict):
                 return [ToolCall(tool=tool, args=args)]
 
