@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 def _estimate_tokens(messages: list) -> int:
     """Estimate token count using tiktoken if available, fall back to char-based."""
     try:
-        import tiktoken
+        import tiktoken  # type: ignore[import-not-found]
 
         enc = tiktoken.get_encoding("cl100k_base")
         total = 0
