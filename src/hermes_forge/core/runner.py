@@ -344,13 +344,13 @@ class WorkflowRunner:
 
         # 2. Step-ordering check
         step_check = step_enforcer.check(validated_calls)
-        if step_check.needs_nudge:
+        if step_check.needs_nudge and step_check.nudge is not None:
             messages.append(_nudge("step_enforcement", step_check.nudge.content))
             return None
 
         # 3. Prerequisite check
         prereq_check = step_enforcer.check_prerequisites(validated_calls)
-        if prereq_check.needs_nudge:
+        if prereq_check.needs_nudge and prereq_check.nudge is not None:
             messages.append(_nudge("prerequisite_skip", prereq_check.nudge.content))
             return None
 

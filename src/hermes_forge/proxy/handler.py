@@ -156,6 +156,7 @@ class RequestHandler:
                         continue
 
                     # Build response
+                    assert isinstance(tool_calls, list), "expected tool calls in tool response branch"
                     if stream:
                         return self._build_streaming_response(tool_calls, model, usage)
                     return self._build_tool_call_response(tool_calls, model, usage)
