@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Literal
+from typing import cast,  Literal
 
 from hermes_forge.core.workflow import LLMResponse, ToolCall
 from hermes_forge.guardrails.error_tracker import ErrorTracker
@@ -85,9 +85,11 @@ class Guardrails:
                         action="fatal", reason="too many consecutive bad responses"
                     )
             action = "tool_error" if kind in TOOL_CHANNEL_KINDS else "retry"
-            return CheckResult(action=action, nudge=nudge)
+            return CheckResult(action=cast(Literal['execute', 'retry', 'tool_error', 'step_blocked', 'fatal'], action), nudge=nudge)
 
         self._errors.reset_retries()
+        if validation.tool_calls is None:
+            return CheckResult(action="tool_error", reason="no tool calls in validation result")
         step_check = self._enforcer.check(validation.tool_calls)
         if step_check.needs_nudge:
             if self._enforcer.premature_exhausted:

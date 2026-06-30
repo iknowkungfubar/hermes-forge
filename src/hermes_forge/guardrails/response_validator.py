@@ -22,7 +22,7 @@ _DEFAULT_RETRY_NUDGE = (
 class ValidationResult:
     """Result of validating an LLM response."""
 
-    tool_calls: list[ToolCall] = None
+    tool_calls: list[ToolCall] | None = None
     needs_retry: bool = False
     nudge: Nudge | None = None
     raw_response: str = ""

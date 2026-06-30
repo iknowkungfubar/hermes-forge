@@ -158,6 +158,7 @@ class RequestHandler:
                     # Build response
                     if stream:
                         return self._build_streaming_response(tool_calls, model, usage)
+                    assert isinstance(tool_calls, list)
                     return self._build_tool_call_response(tool_calls, model, usage)
 
                 else:

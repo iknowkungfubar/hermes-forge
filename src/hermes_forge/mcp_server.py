@@ -389,7 +389,7 @@ def _check_step_ordering(args: dict) -> Any:
                 "pending_steps": pending,
                 "completed_steps": enforcer.completed_steps,
                 "all_required_done": enforcer.is_satisfied(),
-                "nudge": result.nudge.content if result.needs_nudge else None,
+                "nudge": result.nudge.content if result.needs_nudge and result.nudge is not None else None,
             },
             indent=2,
         ),
