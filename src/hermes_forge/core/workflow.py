@@ -26,7 +26,7 @@ def _json_schema_to_type(
 ) -> type:
     if "enum" in prop:
         values = tuple(prop["enum"])
-        return Literal[values]  # type: ignore[valid-type]
+        return Literal[values]  # type: ignore[return-value, valid-type]
     json_type = prop.get("type", "string")
     type_map: dict[str, type] = {
         "string": str,
