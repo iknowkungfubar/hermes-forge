@@ -57,7 +57,7 @@ class RequestHandler:
         self._inject_respond_tool = inject_respond_tool
         self._tool_errors = 0
 
-    async def handle_request(self, body: dict[str, Any]) -> dict[str, Any]:
+    async def handle_request(self, body: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
         """Process a single request through the guardrail pipeline.
 
         Returns an OpenAI-compatible response dict.
@@ -67,6 +67,13 @@ class RequestHandler:
         tools = body.get("tools", [])
         stream = body.get("stream", False)
         model = body.get("model", "default")
+
+        # Extract API key from incoming Authorization header
+        api_key = ""
+        if headers:
+            auth = headers.get("authorization", "")
+            if auth.startswith("Bearer "):
+                api_key = auth[7:]
 
         # Normalize tool definitions
         tool_specs = build_tool_specs(tools)
@@ -119,6 +126,11 @@ class RequestHandler:
         # 4. Forward to backend
         openai_messages = forge_to_openai(forge_messages)
         backend_tools = tool_specs if self._native_passthrough else None
+
+        # Forward the model name and auth from the original request
+        self._client._model = model
+        if api_key:
+            self._client._api_key = api_key
 
         retries = 0
         while retries <= self._max_retries:

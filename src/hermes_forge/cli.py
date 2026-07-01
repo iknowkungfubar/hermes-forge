@@ -75,6 +75,9 @@ def main() -> None:
         "--budget-tokens", type=int, default=8192, help="Context budget in tokens"
     )
     proxy.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
+    proxy.add_argument(
+        "--api-key", help="API key for the backend"
+    )
 
     args = parser.parse_args()
 
@@ -173,6 +176,12 @@ def _cmd_proxy(args: argparse.Namespace) -> None:
     """Start the guardrails proxy server."""
     try:
         from hermes_forge.proxy.proxy import ProxyServer
+        import logging
+        import signal
+        import sys
+
+        if args.verbose:
+            logging.basicConfig(level=logging.DEBUG)
 
         proxy = ProxyServer(
             backend_url=args.backend_url,
@@ -186,12 +195,27 @@ def _cmd_proxy(args: argparse.Namespace) -> None:
             rescue_enabled=not args.no_rescue,
             inject_respond_tool=args.inject_respond_tool,
             budget_tokens=args.budget_tokens,
+            api_key=args.api_key or "",
+            backend_protocol="openai",
         )
-        import logging
 
-        if args.verbose:
-            logging.basicConfig(level=logging.DEBUG)
+        def _shutdown(sig, frame):
+            print("\nShutting down...")
+            proxy.stop()
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, _shutdown)
+        signal.signal(signal.SIGTERM, _shutdown)
+
         proxy.start()
+        print(f"Forge proxy running at {proxy.url}")
+        print(f"  Point your client at {proxy.url}/v1/chat/completions")
+        print("  Ctrl+C to stop")
+
+        # Keep main thread alive — proxy runs on a daemon thread
+        import threading
+        _shutdown_event = threading.Event()
+        _shutdown_event.wait()
     except ImportError as e:
         print(f"Cannot start proxy: {e}", file=sys.stderr)
         sys.exit(1)

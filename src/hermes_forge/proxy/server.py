@@ -74,7 +74,7 @@ class HTTPServer:
                 path in ("/v1/chat/completions", "/chat/completions")
                 and method == "POST"
             ):
-                response = await self._handle_chat_completion(body)
+                response = await self._handle_chat_completion(body, headers)
             elif path in ("/health", "/v1/health") and method == "GET":
                 response = {"status": "ok", "service": "hermes-forge-proxy"}
             elif path == "/v1/models" and method == "GET":
@@ -166,9 +166,9 @@ class HTTPServer:
             logger.warning("Invalid request body: %s", e)
             return "POST", "/v1/chat/completions", {}, {}
 
-    async def _handle_chat_completion(self, body: dict[str, Any]) -> dict[str, Any]:
+    async def _handle_chat_completion(self, body: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
         """Handle a chat completion request through the guardrail pipeline."""
-        return await self._handler.handle_request(body)
+        return await self._handler.handle_request(body, headers or {})
 
     async def _send_json_response(
         self,
