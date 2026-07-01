@@ -1,0 +1,10 @@
+name: hermes-forge
+version: "0.2.0"
+description: "Forge guardrail layer — validates tool calls, rescues malformed output, enforces step ordering, and injects tool-calling best practices into every LLM call."
+author: Hermes Forge Contributors
+
+provides_tools: []
+provides_hooks:
+  - pre_llm_call
+  - pre_tool_call
+  - on_session_end
