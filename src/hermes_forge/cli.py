@@ -176,12 +176,15 @@ def _cmd_proxy(args: argparse.Namespace) -> None:
     """Start the guardrails proxy server."""
     try:
         from hermes_forge.proxy.proxy import ProxyServer
+        import os
         import logging
         import signal
         import sys
 
         if args.verbose:
             logging.basicConfig(level=logging.DEBUG)
+
+        api_key = args.api_key or os.environ.get("CUSTOM_PROVIDER_ZEN_KEY", "")
 
         proxy = ProxyServer(
             backend_url=args.backend_url,
@@ -195,7 +198,7 @@ def _cmd_proxy(args: argparse.Namespace) -> None:
             rescue_enabled=not args.no_rescue,
             inject_respond_tool=args.inject_respond_tool,
             budget_tokens=args.budget_tokens,
-            api_key=args.api_key or "",
+            api_key=api_key,
             backend_protocol="openai",
         )
 
