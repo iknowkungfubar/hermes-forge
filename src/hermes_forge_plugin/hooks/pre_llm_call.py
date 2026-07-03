@@ -13,7 +13,6 @@ was recently rescued or failed validation.
 Returns None when no injection is needed (zero overhead).
 """
 
-import json
 import logging
 
 logger = logging.getLogger(__name__)

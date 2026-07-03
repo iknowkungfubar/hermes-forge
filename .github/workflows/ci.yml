@@ -34,7 +34,7 @@ jobs:
     - name: Check imports
       run: |
         python -c "from hermes_forge import *; print('All exports OK')"
-        python -c "from hermes_forge_plugin.plugin import HermesForgePlugin; print('Plugin import OK')"
+        python -c "from hermes_forge_plugin import *; print('Plugin exports OK')"
 
   lint:
     runs-on: ubuntu-latest
