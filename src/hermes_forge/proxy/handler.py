@@ -128,9 +128,9 @@ class RequestHandler:
         backend_tools = tool_specs if self._native_passthrough else None
 
         # Forward the model name and auth from the original request
-        self._client._model = model
+        self._client._model = model  # type: ignore[attr-defined]
         if api_key:
-            self._client._api_key = api_key
+            self._client._api_key = api_key  # type: ignore[attr-defined]
 
         retries = 0
         while retries <= self._max_retries:
