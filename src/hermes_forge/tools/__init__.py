@@ -1,0 +1,1 @@
+"""Tool call validation handler."""
