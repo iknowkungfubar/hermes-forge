@@ -7,6 +7,10 @@ from typing import Any
 
 import mcp.types as types
 
+# Validation limits
+_MAX_MESSAGE_COUNT = 10_000
+_MAX_BUDGET_TOKENS = 1_000_000
+
 
 def _estimate_context_budget(args: dict) -> Any:
     message_count = args.get("message_count", 0)
