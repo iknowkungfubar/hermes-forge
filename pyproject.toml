@@ -81,6 +81,7 @@ asyncio_mode = "auto"
 source = ["hermes_forge"]
 
 [tool.coverage.report]
+fail_under = 20
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
