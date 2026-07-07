@@ -93,3 +93,8 @@ python_version = "3.12"
 ignore_missing_imports = true
 disallow_untyped_defs = false
 warn_unused_ignores = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

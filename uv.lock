@@ -1626,6 +1626,11 @@ vllm = [
     { name = "vllm" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.70.0" },
@@ -1646,6 +1651,9 @@ requires-dist = [
     { name = "vllm", marker = "extra == 'vllm'", specifier = ">=0.6.0" },
 ]
 provides-extras = ["dev", "anthropic", "ollama", "vllm", "all"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.1.1" }]
 
 [[package]]
 name = "hf-xet"

@@ -202,22 +202,18 @@ class RequestHandler:
 
     def _is_tool_response(self, response: list[dict[str, Any]]) -> bool:
         """Check if the response contains tool calls."""
-        if not response:
-            return False
-        return "tool" in response[0] or "tool_calls" in response[0]
+        from hermes_forge.proxy.response import is_tool_response
+        return is_tool_response(response)
 
     def _parse_tool_calls(
         self, response: list[dict[str, Any]]
     ) -> list[ToolCall] | TextResponse:
         """Parse backend response into forge ToolCall list or TextResponse."""
-        tool_calls = []
-        for item in response:
-            if "tool" in item:
-                tool_calls.append(
-                    ToolCall(tool=item["tool"], args=item.get("args", {}))
-                )
-        if tool_calls:
-            return tool_calls
+        from hermes_forge.proxy.response import parse_tool_calls
+
+        parsed = parse_tool_calls(response)
+        if parsed:
+            return [ToolCall(tool=tc["name"], args=json.loads(tc["arguments"])) for tc in parsed]
         if response and "content" in response[0]:
             return TextResponse(content=response[0].get("content", ""))
         return TextResponse(content="")
@@ -226,6 +222,8 @@ class RequestHandler:
         self, tool_calls: list[ToolCall], model: str, usage: TokenUsage
     ) -> dict[str, Any]:
         """Build an OpenAI-format tool call response."""
+        from hermes_forge.proxy.response import build_response_envelope
+
         choices = [
             {
                 "index": 0,
@@ -247,7 +245,7 @@ class RequestHandler:
                 "finish_reason": "tool_calls",
             }
         ]
-        return self._build_response_envelope(choices, model, usage)
+        return build_response_envelope(choices, model, usage)
 
     def _build_text_response(
         self, content: str, model: str, usage: TokenUsage

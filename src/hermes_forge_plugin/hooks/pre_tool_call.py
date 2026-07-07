@@ -24,6 +24,41 @@ _CONTINUE_ALLOWED_TOOLS = {
 }
 
 
+def _validate_arguments(tool_name: str, tool_input: dict | str) -> dict | None:
+    """Validate tool call arguments using shared guardrails logic."""
+    # 2. Empty argument detection for known tools that need them
+    # Check before JSON decode to catch empty string case
+    if tool_name in ("terminal", "write_file", "patch", "web_extract"):
+        if isinstance(tool_input, dict) and not tool_input:
+            return {
+                "context": (
+                    f"[Forge] Tool '{tool_name}' requires arguments but none were provided. "
+                    "Add the required parameters and retry."
+                )
+            }
+        if isinstance(tool_input, str) and not tool_input.strip():
+            return {
+                "context": (
+                    f"[Forge] Tool '{tool_name}' requires arguments but none were provided. "
+                    "Add the required parameters and retry."
+                )
+            }
+
+    # 3. Argument type sanity checks
+    if isinstance(tool_input, str):
+        try:
+            json.loads(tool_input)
+        except (json.JSONDecodeError, TypeError):
+            return {
+                "context": (
+                    f"[Forge] Tool call arguments for '{tool_name}' are malformed "
+                    "(not valid JSON). Fix the argument format and retry."
+                )
+            }
+
+    return None
+
+
 def pre_tool_call(**kwargs) -> dict | None:
     """Validate a tool call and inject correction context if needed."""
     tool_name = kwargs.get("tool_name", "")
@@ -33,7 +68,7 @@ def pre_tool_call(**kwargs) -> dict | None:
     if tool_name in _CONTINUE_ALLOWED_TOOLS:
         return None
 
-    # 1. Basic tool name check
+    # 1. Basic tool name check — share logic with guardrails module
     available_tools = kwargs.get("available_tools", [])
     if available_tools and tool_name not in available_tools:
         return {
@@ -45,25 +80,5 @@ def pre_tool_call(**kwargs) -> dict | None:
             )
         }
 
-    # 2. Argument type sanity checks
-    if isinstance(tool_input, str):
-        try:
-            tool_input = json.loads(tool_input)
-        except (json.JSONDecodeError, TypeError):
-            return {
-                "context": (
-                    f"[Forge] Tool call arguments for '{tool_name}' are malformed "
-                    "(not valid JSON). Fix the argument format and retry."
-                )
-            }
-
-    # 3. Empty argument detection for known tools that need them
-    if tool_name in ("terminal", "write_file", "patch", "web_extract") and not tool_input:
-        return {
-            "context": (
-                f"[Forge] Tool '{tool_name}' requires arguments but none were provided. "
-                "Add the required parameters and retry."
-            )
-        }
-
-    return None
+    # 2-3. Delegate to shared argument validation
+    return _validate_arguments(tool_name, tool_input)

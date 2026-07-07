@@ -30,7 +30,7 @@ jobs:
         pip install -e ".[dev]"
     - name: Run tests
       run: |
-        python -m pytest tests/ -v --tb=short --cov=hermes_forge --cov-report=term-missing
+        python -m pytest tests/ -v --tb=short --cov=hermes_forge --cov-report=term-missing --cov-fail-under=40
     - name: Check imports
       run: |
         python -c "from hermes_forge import *; print('All exports OK')"
