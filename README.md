@@ -157,6 +157,11 @@ tests/                    # Test suite
 - [Hermes Agent](https://github.com/NousResearch/hermes-agent) — Open-source AI agent framework by Nous Research
 - [MCP (Model Context Protocol)](https://modelcontextprotocol.io) — Protocol for AI tool calling
 
+
+---
+
+**Contact:** Josh Barker — [josh@turintechsolutions.com](mailto:josh@turintechsolutions.com) — [turintechsolutions.com](https://turintechsolutions.com)
+
 ## License
 
 MIT — Copyright (c) 2026 Hermes Forge Contributors. Based on Forge by Antoine Zambelli.
