@@ -19,6 +19,7 @@ from hermes_forge.core.workflow import (
     Workflow,
 )
 from hermes_forge.core.steps import StepTracker
+from hermes_forge.core.inference import run_inference
 from hermes_forge.guardrails.response_validator import (
     ResponseValidator,
     rescue_tool_call,
@@ -441,6 +442,105 @@ class TestWorkflow:
         )
         prompt = wf.build_system_prompt(name="World")
         assert prompt == "Hello World!"
+
+
+class TestRunInference:
+    """Test the run_inference function and _try_parse_json_tool_calls helper."""
+
+    def test_tool_call_openai_format(self):
+        """Direct JSON tool call (OpenAI format) should return tool_calls."""
+        text = json.dumps({"name": "get_weather", "arguments": {"city": "London"}})
+        result = run_inference(text, tools=["get_weather"])
+        assert not result.needs_retry
+        assert len(result.tool_calls) == 1
+        assert result.tool_calls[0].tool == "get_weather"
+        assert result.tool_calls[0].args == {"city": "London"}
+
+    def test_tool_call_function_wrapper_format(self):
+        """Tool call with function wrapper format should work."""
+        text = json.dumps(
+            {"function": {"name": "get_weather", "arguments": {"city": "Paris"}}}
+        )
+        result = run_inference(text, tools=["get_weather"])
+        assert not result.needs_retry
+        assert result.tool_calls[0].tool == "get_weather"
+        assert result.tool_calls[0].args == {"city": "Paris"}
+
+    def test_tool_call_action_format(self):
+        """Tool call with tool/action shorthand should work."""
+        text = json.dumps({"tool": "get_weather", "args": {"city": "Tokyo"}})
+        result = run_inference(text, tools=["get_weather"])
+        assert not result.needs_retry
+        assert result.tool_calls[0].tool == "get_weather"
+
+    def test_tool_call_string_args(self):
+        """Args as a JSON string should be parsed."""
+        text = json.dumps(
+            {"name": "get_weather", "arguments": json.dumps({"city": "Berlin"})}
+        )
+        result = run_inference(text, tools=["get_weather"])
+        assert not result.needs_retry
+        assert result.tool_calls[0].args == {"city": "Berlin"}
+
+    def test_rescue_parsing_code_fence(self):
+        """Code fence JSON should be rescued."""
+        text = '```json {"name": "get_weather", "arguments": {"city": "Rome"}} ```'
+        result = run_inference(text, tools=["get_weather"])
+        assert not result.needs_retry
+        assert result.tool_calls[0].tool == "get_weather"
+
+    def test_text_response_no_tools(self):
+        """Pure text response with no tools should return text."""
+        result = run_inference("Hello, how can I help?", tools=None)
+        assert not result.needs_retry
+        assert result.text == "Hello, how can I help?"
+
+    def test_text_response_with_tools_retry(self):
+        """Text response when tools are available should trigger retry."""
+        result = run_inference("I'll help you with that", tools=["get_weather"])
+        assert result.needs_retry
+        assert result.retry_reason == "text_instead_of_tool_call"
+        assert result.text == "I'll help you with that"
+
+    def test_empty_response_retry(self):
+        """Empty response should trigger retry."""
+        result = run_inference("  ", tools=["get_weather"])
+        assert result.needs_retry
+        assert result.retry_reason == "empty_response"
+
+    def test_unknown_tool_name_goes_to_rescue_then_retry(self):
+        """Tool not in valid_tools triggers rescue then retry with text."""
+        text = json.dumps({"name": "unknown_tool", "arguments": {}})
+        result = run_inference(text, tools=["get_weather"])
+        # JSON parsing fails (unknown tool), rescue fails (same reason),
+        # falls through to text-with-tools retry
+        assert result.needs_retry
+        assert result.text is not None
+
+    def test_not_json_returns_none(self):
+        """Non-JSON text not starting with { should not parse."""
+        from hermes_forge.core.inference import _try_parse_json_tool_calls
+
+        assert _try_parse_json_tool_calls("hello world", {"tool"}) is None
+
+    def test_malformed_json_returns_none(self):
+        """Malformed JSON should not parse."""
+        from hermes_forge.core.inference import _try_parse_json_tool_calls
+
+        assert _try_parse_json_tool_calls("{bad json}", {"tool"}) is None
+
+    def test_rescue_via_mistral_format(self):
+        """Mistral [TOOL_CALLS] format should be rescued."""
+        text = '[TOOL_CALLS] get_weather({"city": "Madrid"})'
+        result = run_inference(text, tools=["get_weather"])
+        assert not result.needs_retry
+        assert result.tool_calls[0].tool == "get_weather"
+
+    def test_dict_tools_parameter(self):
+        """Tools as dict should be treated as valid."""
+        text = json.dumps({"name": "get_weather", "arguments": {"city": "Berlin"}})
+        result = run_inference(text, tools={"get_weather": None})
+        assert not result.needs_retry
 
 
 class TestCLI:
