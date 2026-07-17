@@ -2,6 +2,8 @@
 
 A self-hosted MCP server and Hermes Agent plugin that brings [Forge](https://github.com/antoinezambelli/forge)'s guardrail framework to Hermes Agent. This project reverse-engineers Forge's core architecture into a reusable, extensible MCP server with connected skills and tools.
 
+[![CI](https://github.com/iknowkungfubar/hermes-forge/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/iknowkungfubar/hermes-forge/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/iknowkungfubar/hermes-forge/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/iknowkungfubar/hermes-forge/actions/workflows/codeql.yml)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/iknowkungfubar/hermes-forge)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
