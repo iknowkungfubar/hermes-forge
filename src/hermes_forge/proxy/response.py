@@ -123,9 +123,11 @@ def parse_tool_calls(response: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for choice in response:
         delta = choice.get("delta", choice)
         for tc in delta.get("tool_calls", []):
-            tool_calls.append({
-                "id": tc.get("id", ""),
-                "name": tc.get("function", {}).get("name", ""),
-                "arguments": tc.get("function", {}).get("arguments", "{}"),
-            })
+            tool_calls.append(
+                {
+                    "id": tc.get("id", ""),
+                    "name": tc.get("function", {}).get("name", ""),
+                    "arguments": tc.get("function", {}).get("arguments", "{}"),
+                }
+            )
     return tool_calls

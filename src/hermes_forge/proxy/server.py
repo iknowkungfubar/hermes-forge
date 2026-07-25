@@ -166,7 +166,9 @@ class HTTPServer:
             logger.warning("Invalid request body: %s", e)
             return "POST", "/v1/chat/completions", {}, {}
 
-    async def _handle_chat_completion(self, body: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
+    async def _handle_chat_completion(
+        self, body: dict[str, Any], headers: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """Handle a chat completion request through the guardrail pipeline."""
         return await self._handler.handle_request(body, headers or {})
 

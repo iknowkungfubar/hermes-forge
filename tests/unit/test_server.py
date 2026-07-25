@@ -72,49 +72,37 @@ class TestServerManagerResolveBudget:
             mgr.resolve_budget(BudgetMode.MANUAL)
 
     def test_forge_full_huge_vram(self):
-        with patch(
-            "hermes_forge.server.detect_hardware"
-        ) as mock_detect:
+        with patch("hermes_forge.server.detect_hardware") as mock_detect:
             mock_detect.return_value.vram_total_gb = 64
             mgr = ServerManager()
             assert mgr.resolve_budget(BudgetMode.FORGE_FULL) == 262_144
 
     def test_forge_full_large_vram(self):
-        with patch(
-            "hermes_forge.server.detect_hardware"
-        ) as mock_detect:
+        with patch("hermes_forge.server.detect_hardware") as mock_detect:
             mock_detect.return_value.vram_total_gb = 32
             mgr = ServerManager()
             assert mgr.resolve_budget(BudgetMode.FORGE_FULL) == 32_768
 
     def test_forge_full_medium_vram(self):
-        with patch(
-            "hermes_forge.server.detect_hardware"
-        ) as mock_detect:
+        with patch("hermes_forge.server.detect_hardware") as mock_detect:
             mock_detect.return_value.vram_total_gb = 16
             mgr = ServerManager()
             assert mgr.resolve_budget(BudgetMode.FORGE_FULL) == 16_384
 
     def test_forge_fast_half_budget(self):
-        with patch(
-            "hermes_forge.server.detect_hardware"
-        ) as mock_detect:
+        with patch("hermes_forge.server.detect_hardware") as mock_detect:
             mock_detect.return_value.vram_total_gb = 32
             mgr = ServerManager()
             assert mgr.resolve_budget(BudgetMode.FORGE_FAST) == 16_384
 
     def test_forge_full_small_vram(self):
-        with patch(
-            "hermes_forge.server.detect_hardware"
-        ) as mock_detect:
+        with patch("hermes_forge.server.detect_hardware") as mock_detect:
             mock_detect.return_value.vram_total_gb = 4
             mgr = ServerManager()
             assert mgr.resolve_budget(BudgetMode.FORGE_FULL) == 4_096
 
     def test_forge_full_no_hardware(self):
-        with patch(
-            "hermes_forge.server.detect_hardware"
-        ) as mock_detect:
+        with patch("hermes_forge.server.detect_hardware") as mock_detect:
             mock_detect.return_value = None
             mgr = ServerManager()
             assert mgr.resolve_budget(BudgetMode.FORGE_FULL) == 4_096

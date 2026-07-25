@@ -19,8 +19,12 @@ logger = logging.getLogger(__name__)
 
 # Forge reserves these as non-blocking patterns
 _CONTINUE_ALLOWED_TOOLS = {
-    "web_search", "web_extract", "read_file", "search_files",
-    "browser_snapshot", "session_search",
+    "web_search",
+    "web_extract",
+    "read_file",
+    "search_files",
+    "browser_snapshot",
+    "session_search",
 }
 
 

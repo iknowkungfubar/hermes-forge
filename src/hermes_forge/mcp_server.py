@@ -59,7 +59,12 @@ TOOLS: list[types.Tool] = [
                 "required_steps": {"type": "array", "items": {"type": "string"}},
                 "terminal_tools": {"type": "array", "items": {"type": "string"}},
             },
-            "required": ["tool_name", "completed_steps", "required_steps", "terminal_tools"],
+            "required": [
+                "tool_name",
+                "completed_steps",
+                "required_steps",
+                "terminal_tools",
+            ],
         },
     ),
     types.Tool(
@@ -96,7 +101,13 @@ TOOLS: list[types.Tool] = [
                 "required_steps": {"type": "array", "items": {"type": "string"}},
                 "terminal_tool": {"type": "string"},
             },
-            "required": ["name", "description", "tools", "required_steps", "terminal_tool"],
+            "required": [
+                "name",
+                "description",
+                "tools",
+                "required_steps",
+                "terminal_tool",
+            ],
         },
     ),
 ]
@@ -120,7 +131,11 @@ async def handle_call(name: str, arguments: dict) -> list[types.TextContent]:
     """Dispatch a tool call to the appropriate handler."""
     handler = HANDLERS.get(name)
     if handler is None:
-        return [types.TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
+        return [
+            types.TextContent(
+                type="text", text=json.dumps({"error": f"Unknown tool: {name}"})
+            )
+        ]
     try:
         result = handler(arguments)
         if isinstance(result, list):
@@ -183,7 +198,9 @@ def serve_sse(host: str = "127.0.0.1", port: int = 8089) -> None:
     sse = SseServerTransport("/messages/")
 
     async def handle_sse(request):
-        async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
+        async with sse.connect_sse(
+            request.scope, request.receive, request._send
+        ) as streams:
             await app.run(streams[0], streams[1], app.create_initialization_options())
 
     starlette_app = Starlette(

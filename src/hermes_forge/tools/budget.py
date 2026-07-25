@@ -28,7 +28,6 @@ def _estimate_context_budget(args: dict) -> Any:
         elif estimated_tokens >= int(budget_tokens * 0.75):
             compaction_phase = 1
 
-
     return types.TextContent(
         type="text",
         text=json.dumps(

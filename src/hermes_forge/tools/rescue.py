@@ -31,9 +31,16 @@ def _rescue_impl(args: dict) -> Any:
     if not isinstance(available_tools, list):
         raise ValueError("'available_tools' must be a list")
     if len(available_tools) > _MAX_TOOL_LIST_LENGTH:
-        raise ValueError(f"'available_tools' exceeds max length of {_MAX_TOOL_LIST_LENGTH}")
-    if any(not isinstance(t, str) or len(t) > _MAX_TOOL_NAME_LENGTH for t in available_tools):
-        raise ValueError(f"Tool names must be strings under {_MAX_TOOL_NAME_LENGTH} characters")
+        raise ValueError(
+            f"'available_tools' exceeds max length of {_MAX_TOOL_LIST_LENGTH}"
+        )
+    if any(
+        not isinstance(t, str) or len(t) > _MAX_TOOL_NAME_LENGTH
+        for t in available_tools
+    ):
+        raise ValueError(
+            f"Tool names must be strings under {_MAX_TOOL_NAME_LENGTH} characters"
+        )
 
     result = rescue_fn(text, valid_tools)
 

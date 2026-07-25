@@ -84,7 +84,9 @@ class Guardrails:
                     return CheckResult(
                         action="fatal", reason="too many consecutive bad responses"
                     )
-            action: Literal["execute", "retry", "tool_error", "step_blocked", "fatal"] = "tool_error" if kind in TOOL_CHANNEL_KINDS else "retry"
+            action: Literal[
+                "execute", "retry", "tool_error", "step_blocked", "fatal"
+            ] = "tool_error" if kind in TOOL_CHANNEL_KINDS else "retry"
             return CheckResult(action=action, nudge=nudge)
 
         self._errors.reset_retries()

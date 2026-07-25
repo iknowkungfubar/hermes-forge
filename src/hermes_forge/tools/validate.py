@@ -20,7 +20,6 @@ def _validate_tool_call(args: dict) -> Any:
     tool_call = ToolCall(tool=tool_name, args=arguments)
     result = validator.validate([tool_call])
 
-
     if result.needs_retry:
         return types.TextContent(
             type="text",
@@ -48,7 +47,6 @@ def _validate_tool_call(args: dict) -> Any:
             indent=2,
         ),
     )
-
 
 
 handle = _validate_tool_call

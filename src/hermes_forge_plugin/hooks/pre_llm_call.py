@@ -49,7 +49,7 @@ def _forge_system_guide() -> str:
     return (
         "[Forge Tool-Calling Guide]\n"
         "• Always output tool calls as a JSON object in a code fence:\n"
-        '  ```json\n'
+        "  ```json\n"
         '  {"name": "tool_name", "arguments": {"key": "value"}}\n'
         "  ```\n"
         "• If you need to call multiple tools, do them sequentially.\n"

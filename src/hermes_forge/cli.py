@@ -75,9 +75,7 @@ def main() -> None:
         "--budget-tokens", type=int, default=8192, help="Context budget in tokens"
     )
     proxy.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
-    proxy.add_argument(
-        "--api-key", help="API key for the backend"
-    )
+    proxy.add_argument("--api-key", help="API key for the backend")
 
     args = parser.parse_args()
 
@@ -217,6 +215,7 @@ def _cmd_proxy(args: argparse.Namespace) -> None:
 
         # Keep main thread alive — proxy runs on a daemon thread
         import threading
+
         _shutdown_event = threading.Event()
         _shutdown_event.wait()
     except ImportError as e:

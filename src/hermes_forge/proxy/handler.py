@@ -57,7 +57,9 @@ class RequestHandler:
         self._inject_respond_tool = inject_respond_tool
         self._tool_errors = 0
 
-    async def handle_request(self, body: dict[str, Any], headers: dict[str, str] | None = None) -> dict[str, Any]:
+    async def handle_request(
+        self, body: dict[str, Any], headers: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """Process a single request through the guardrail pipeline.
 
         Returns an OpenAI-compatible response dict.
@@ -168,7 +170,9 @@ class RequestHandler:
                         continue
 
                     # Build response
-                    assert isinstance(tool_calls, list), "expected tool calls in tool response branch"
+                    assert isinstance(tool_calls, list), (
+                        "expected tool calls in tool response branch"
+                    )
                     if stream:
                         return self._build_streaming_response(tool_calls, model, usage)
                     return self._build_tool_call_response(tool_calls, model, usage)
@@ -203,6 +207,7 @@ class RequestHandler:
     def _is_tool_response(self, response: list[dict[str, Any]]) -> bool:
         """Check if the response contains tool calls."""
         from hermes_forge.proxy.response import is_tool_response
+
         return is_tool_response(response)
 
     def _parse_tool_calls(
@@ -213,7 +218,10 @@ class RequestHandler:
 
         parsed = parse_tool_calls(response)
         if parsed:
-            return [ToolCall(tool=tc["name"], args=json.loads(tc["arguments"])) for tc in parsed]
+            return [
+                ToolCall(tool=tc["name"], args=json.loads(tc["arguments"]))
+                for tc in parsed
+            ]
         if response and "content" in response[0]:
             return TextResponse(content=response[0].get("content", ""))
         return TextResponse(content="")

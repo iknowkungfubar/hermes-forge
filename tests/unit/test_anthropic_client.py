@@ -41,7 +41,10 @@ class TestAnthropicBuildPayload:
                     {
                         "id": "call_abc",
                         "type": "function",
-                        "function": {"name": "get_weather", "arguments": '{"city": "London"}'},
+                        "function": {
+                            "name": "get_weather",
+                            "arguments": '{"city": "London"}',
+                        },
                     }
                 ],
             },
@@ -183,8 +186,18 @@ class TestAnthropicNormalizeResponse:
         client = AnthropicClient()
         data = {
             "content": [
-                {"type": "tool_use", "id": "tu_1", "name": "search", "input": {"q": "weather"}},
-                {"type": "tool_use", "id": "tu_2", "name": "get_forecast", "input": {"days": 3}},
+                {
+                    "type": "tool_use",
+                    "id": "tu_1",
+                    "name": "search",
+                    "input": {"q": "weather"},
+                },
+                {
+                    "type": "tool_use",
+                    "id": "tu_2",
+                    "name": "get_forecast",
+                    "input": {"days": 3},
+                },
             ],
             "usage": {"input_tokens": 20, "output_tokens": 15},
         }
