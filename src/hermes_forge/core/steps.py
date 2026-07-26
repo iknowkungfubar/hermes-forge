@@ -32,7 +32,7 @@ class StepTracker:
         tool_name: str,
         args: dict[str, Any],
         prerequisites: list[str | dict[str, str]],
-    ) -> "PrerequisiteResult":
+    ) -> PrerequisiteResult:
         """Check if all prerequisites for a tool are satisfied."""
         missing: list[str] = []
         for prereq in prerequisites:

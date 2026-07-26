@@ -175,7 +175,7 @@ class TestAnthropicNormalizeResponse:
             ],
             "usage": {"input_tokens": 15, "output_tokens": 10},
         }
-        result, usage = client._normalize_response(data)
+        result, _usage = client._normalize_response(data)
         assert len(result) == 1  # Only the tool call, text is discarded
         assert result[0]["tool"] == "get_weather"
         assert result[0]["args"]["city"] == "London"
@@ -201,7 +201,7 @@ class TestAnthropicNormalizeResponse:
             ],
             "usage": {"input_tokens": 20, "output_tokens": 15},
         }
-        result, usage = client._normalize_response(data)
+        result, _usage = client._normalize_response(data)
         assert len(result) == 2
         assert result[0]["tool"] == "search"
         assert result[1]["tool"] == "get_forecast"
@@ -210,7 +210,7 @@ class TestAnthropicNormalizeResponse:
         """Missing usage data should default to zeros."""
         client = AnthropicClient()
         data = {"content": [{"type": "text", "text": "Hello"}]}
-        result, usage = client._normalize_response(data)
+        _result, usage = client._normalize_response(data)
         assert usage.prompt_tokens == 0
         assert usage.completion_tokens == 0
         assert usage.total_tokens == 0
@@ -219,7 +219,7 @@ class TestAnthropicNormalizeResponse:
         """Empty content list should return empty response."""
         client = AnthropicClient()
         data = {"content": [], "usage": {"input_tokens": 5, "output_tokens": 0}}
-        result, usage = client._normalize_response(data)
+        result, _usage = client._normalize_response(data)
         assert len(result) == 1
         assert result[0]["role"] == "assistant"
         assert result[0]["content"] == ""

@@ -15,8 +15,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from hermes_forge.core.workflow import Workflow
 from hermes_forge.core.messages import Message
+from hermes_forge.core.workflow import Workflow
 
 
 @dataclass(order=True)
@@ -78,9 +78,8 @@ class SlotWorker:
                 if (
                     self._current_task is not None
                     and priority < self._current_task.priority
-                ):
-                    if self._cancel_event:
-                        self._cancel_event.set()
+                ) and self._cancel_event:
+                    self._cancel_event.set()
 
                 self._current_task = task
                 cancel_event = asyncio.Event()

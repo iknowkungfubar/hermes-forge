@@ -7,9 +7,9 @@ If REPO_PATH is omitted, uses the git root of the current directory.
 """
 
 import argparse
+import json
 import os
 import re
-import json
 import subprocess
 import sys
 from pathlib import Path

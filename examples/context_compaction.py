@@ -4,18 +4,18 @@ Example 3: Context Compaction
 Demonstrates how Forge manages context budgets in long-running workflows.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType
 from hermes_forge.context.manager import ContextManager
 from hermes_forge.context.strategies import (
-    TieredCompact,
-    SlidingWindowCompact,
     NoCompact,
+    SlidingWindowCompact,
+    TieredCompact,
 )
+from hermes_forge.core.messages import Message, MessageMeta, MessageRole, MessageType
 
 
 def main():
@@ -94,7 +94,7 @@ def main():
         on_compact=lambda e: events.append(e),
     )
 
-    should, tokens = cm.should_compact(messages)
+    should, _tokens = cm.should_compact(messages)
     print(f"  Should compact: {should}")
     if should:
         compacted_cm = cm.compact(messages)

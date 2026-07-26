@@ -173,11 +173,12 @@ def _cmd_serve(args: argparse.Namespace) -> None:
 def _cmd_proxy(args: argparse.Namespace) -> None:
     """Start the guardrails proxy server."""
     try:
-        from hermes_forge.proxy.proxy import ProxyServer
-        import os
         import logging
+        import os
         import signal
         import sys
+
+        from hermes_forge.proxy.proxy import ProxyServer
 
         if args.verbose:
             logging.basicConfig(level=logging.DEBUG)

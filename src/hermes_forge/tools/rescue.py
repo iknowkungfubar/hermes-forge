@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import mcp.types as types
+from mcp import types
 
 # Maximum input text length for rescue parsing
 _MAX_TEXT_LENGTH = 50000

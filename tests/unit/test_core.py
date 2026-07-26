@@ -3,7 +3,16 @@ Basic tests for hermes-forge guardrails.
 """
 
 import json
+
 import pytest
+
+from hermes_forge.context.manager import ContextManager
+from hermes_forge.context.strategies import (
+    NoCompact,
+    SlidingWindowCompact,
+    TieredCompact,
+)
+from hermes_forge.core.inference import run_inference
 from hermes_forge.core.messages import (
     Message,
     MessageMeta,
@@ -11,28 +20,21 @@ from hermes_forge.core.messages import (
     MessageType,
     ToolCallInfo,
 )
+from hermes_forge.core.steps import StepTracker
 from hermes_forge.core.workflow import (
     TextResponse,
     ToolCall,
-    ToolSpec,
     ToolDef,
+    ToolSpec,
     Workflow,
 )
-from hermes_forge.core.steps import StepTracker
-from hermes_forge.core.inference import run_inference
+from hermes_forge.guardrails.error_tracker import ErrorTracker
+from hermes_forge.guardrails.guardrails import Guardrails
 from hermes_forge.guardrails.response_validator import (
     ResponseValidator,
     rescue_tool_call,
 )
 from hermes_forge.guardrails.step_enforcer import StepEnforcer
-from hermes_forge.guardrails.error_tracker import ErrorTracker
-from hermes_forge.guardrails.guardrails import Guardrails
-from hermes_forge.context.manager import ContextManager
-from hermes_forge.context.strategies import (
-    NoCompact,
-    SlidingWindowCompact,
-    TieredCompact,
-)
 
 
 class TestMessages:
@@ -334,7 +336,7 @@ class TestContextStrategies:
             )
 
         # With small budget, compaction should trigger
-        result, phase = strategy.compact(messages, 100)
+        result, _phase = strategy.compact(messages, 100)
 
         # Should still have system + user
         assert len(result) >= 2
@@ -345,7 +347,7 @@ class TestContextStrategies:
             Message(role=MessageRole.SYSTEM, content="system"),
             Message(role=MessageRole.USER, content="user"),
         ]
-        result, phase = strategy.compact(messages, 8192)
+        _result, phase = strategy.compact(messages, 8192)
         assert phase == 0
 
 

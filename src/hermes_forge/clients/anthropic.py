@@ -11,7 +11,7 @@ from typing import Any
 
 import httpx
 
-from hermes_forge.clients.base import LLMClient, StreamChunk, ChunkType, TokenUsage
+from hermes_forge.clients.base import ChunkType, LLMClient, StreamChunk, TokenUsage
 
 logger = logging.getLogger("forge.client.anthropic")
 

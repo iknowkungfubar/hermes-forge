@@ -208,9 +208,8 @@ class TieredCompact(CompactStrategy):
             MessageType.TOOL_RESULT.value,
         }
         for i, msg in enumerate(messages):
-            if 2 <= i < eligible_end:
-                if self._is_type(msg, *drop_types):
-                    continue
+            if 2 <= i < eligible_end and self._is_type(msg, *drop_types):
+                continue
             result.append(msg)
         return result
 
@@ -227,8 +226,7 @@ class TieredCompact(CompactStrategy):
             MessageType.TEXT_RESPONSE.value,
         }
         for i, msg in enumerate(messages):
-            if 2 <= i < eligible_end:
-                if self._is_type(msg, *drop_types):
-                    continue
+            if 2 <= i < eligible_end and self._is_type(msg, *drop_types):
+                continue
             result.append(msg)
         return result
