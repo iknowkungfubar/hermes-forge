@@ -571,6 +571,7 @@ class TestCLI:
             ],
             capture_output=True,
             text=True,
+            check=False,
         )
         print(result.stdout, result.stderr)
         assert result.returncode == 0

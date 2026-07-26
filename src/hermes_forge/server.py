@@ -80,6 +80,7 @@ class ServerManager:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,
         )
         if result.returncode != 0:
             logger.warning("Ollama not running. Attempting to start...")
@@ -99,6 +100,7 @@ class ServerManager:
                     capture_output=True,
                     text=True,
                     timeout=300,
+                    check=False,
                 )
 
     async def _start_llama_server(
