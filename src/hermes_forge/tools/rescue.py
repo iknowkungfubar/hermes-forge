@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import mcp.types as types
+from mcp import types
 
 # Maximum input text length for rescue parsing
 _MAX_TEXT_LENGTH = 50000
@@ -25,11 +25,11 @@ def _rescue_impl(args: dict) -> Any:
 
     # Validate input
     if not isinstance(text, str):
-        raise ValueError("'text' must be a string")
+        raise TypeError("'text' must be a string")
     if len(text) > _MAX_TEXT_LENGTH:
         raise ValueError(f"'text' exceeds max length of {_MAX_TEXT_LENGTH}")
     if not isinstance(available_tools, list):
-        raise ValueError("'available_tools' must be a list")
+        raise TypeError("'available_tools' must be a list")
     if len(available_tools) > _MAX_TOOL_LIST_LENGTH:
         raise ValueError(
             f"'available_tools' exceeds max length of {_MAX_TOOL_LIST_LENGTH}"

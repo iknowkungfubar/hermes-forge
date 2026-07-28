@@ -24,13 +24,30 @@ Hermes plugin, and reusable skills. It provides:
   runner and proxy.
 """
 
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
 try:
     __version__ = _pkg_version("hermes-forge")
 except PackageNotFoundError:
     __version__ = "0.1.0"
 
+from hermes_forge.clients.anthropic import AnthropicClient
+from hermes_forge.clients.base import ChunkType, LLMClient, StreamChunk, TokenUsage
+from hermes_forge.clients.llamafile import LlamafileClient
+from hermes_forge.clients.ollama import OllamaClient
+from hermes_forge.clients.openai_compat import OpenAICompatClient
+from hermes_forge.clients.sampling_defaults import apply_sampling_defaults
+from hermes_forge.clients.vllm import VLLMClient
+from hermes_forge.context.hardware import HardwareProfile, detect_hardware
+from hermes_forge.context.manager import CompactEvent, ContextManager
+from hermes_forge.context.strategies import (
+    CompactStrategy,
+    NoCompact,
+    SlidingWindowCompact,
+    TieredCompact,
+)
+from hermes_forge.core.inference import run_inference
 from hermes_forge.core.messages import (
     Message,
     MessageMeta,
@@ -38,6 +55,16 @@ from hermes_forge.core.messages import (
     MessageType,
     ToolCallInfo,
 )
+from hermes_forge.core.reasoning import (
+    DEFAULT_REASONING_REPLAY,
+    REASONING_REPLAY_CHOICES,
+    ReasoningReplay,
+    filter_openai_reasoning_messages,
+    validate_reasoning_replay,
+)
+from hermes_forge.core.runner import WorkflowRunner
+from hermes_forge.core.slot_worker import SlotWorker
+from hermes_forge.core.steps import StepTracker
 from hermes_forge.core.workflow import (
     InferenceResult,
     LLMResponse,
@@ -47,135 +74,102 @@ from hermes_forge.core.workflow import (
     ToolSpec,
     Workflow,
 )
-from hermes_forge.core.runner import WorkflowRunner
-from hermes_forge.core.steps import StepTracker
-from hermes_forge.core.inference import run_inference
-from hermes_forge.core.reasoning import (
-    DEFAULT_REASONING_REPLAY,
-    REASONING_REPLAY_CHOICES,
-    ReasoningReplay,
-    filter_openai_reasoning_messages,
-    validate_reasoning_replay,
+from hermes_forge.errors import (
+    BudgetResolutionError,
+    ForgeError,
+    MaxIterationsError,
+    PrerequisiteError,
+    StepEnforcementError,
+    ToolCallError,
+    ToolExecutionError,
 )
-from hermes_forge.core.slot_worker import SlotWorker
-
+from hermes_forge.guardrails.error_tracker import ErrorTracker
 from hermes_forge.guardrails.guardrails import CheckResult, Guardrails
+from hermes_forge.guardrails.nudge import Nudge
 from hermes_forge.guardrails.response_validator import (
     ResponseValidator,
     ValidationResult,
+    rescue_tool_call,
 )
-from hermes_forge.guardrails.step_enforcer import StepEnforcer, StepCheck
-from hermes_forge.guardrails.error_tracker import ErrorTracker
-from hermes_forge.guardrails.nudge import Nudge
-
-from hermes_forge.context.manager import ContextManager, CompactEvent
-from hermes_forge.context.strategies import (
-    CompactStrategy,
-    NoCompact,
-    TieredCompact,
-    SlidingWindowCompact,
-)
-from hermes_forge.context.hardware import HardwareProfile, detect_hardware
-
-from hermes_forge.prompts.templates import build_tool_prompt, extract_tool_call
-from hermes_forge.guardrails.response_validator import rescue_tool_call
+from hermes_forge.guardrails.step_enforcer import StepCheck, StepEnforcer
 from hermes_forge.prompts.nudges import retry_nudge, step_nudge
-
-from hermes_forge.tools.respond import RESPOND_TOOL_NAME, respond_spec, respond_tool
-
-from hermes_forge.clients.base import ChunkType, LLMClient, StreamChunk, TokenUsage
-from hermes_forge.clients.llamafile import LlamafileClient
-from hermes_forge.clients.ollama import OllamaClient
-from hermes_forge.clients.openai_compat import OpenAICompatClient
-from hermes_forge.clients.vllm import VLLMClient
-from hermes_forge.clients.anthropic import AnthropicClient
-from hermes_forge.clients.sampling_defaults import apply_sampling_defaults
-
+from hermes_forge.prompts.templates import build_tool_prompt, extract_tool_call
 from hermes_forge.proxy.proxy import ProxyServer
 from hermes_forge.server import BudgetMode, ServerManager
-
-from hermes_forge.errors import (
-    ForgeError,
-    ToolCallError,
-    ToolExecutionError,
-    StepEnforcementError,
-    PrerequisiteError,
-    MaxIterationsError,
-    BudgetResolutionError,
-)
+from hermes_forge.tools.respond import RESPOND_TOOL_NAME, respond_spec, respond_tool
 
 __all__ = [
+    "DEFAULT_REASONING_REPLAY",
+    "REASONING_REPLAY_CHOICES",
+    # Tools
+    "RESPOND_TOOL_NAME",
+    "AnthropicClient",
+    "BudgetMode",
+    "BudgetResolutionError",
+    # Guardrails
+    "CheckResult",
+    # Clients
+    "ChunkType",
+    "CompactEvent",
+    "CompactStrategy",
+    # Context
+    "ContextManager",
+    "ErrorTracker",
+    # Errors
+    "ForgeError",
+    "Guardrails",
+    "HardwareProfile",
+    "InferenceResult",
+    "LLMClient",
+    "LLMResponse",
+    "LlamafileClient",
+    "MaxIterationsError",
     # Core
     "Message",
     "MessageMeta",
     "MessageRole",
     "MessageType",
-    "ToolCallInfo",
-    "InferenceResult",
-    "LLMResponse",
-    "TextResponse",
-    "ToolCall",
-    "ToolDef",
-    "ToolSpec",
-    "Workflow",
-    "WorkflowRunner",
-    "StepTracker",
-    "run_inference",
-    "DEFAULT_REASONING_REPLAY",
-    "REASONING_REPLAY_CHOICES",
-    "ReasoningReplay",
-    "filter_openai_reasoning_messages",
-    "validate_reasoning_replay",
-    "SlotWorker",
-    # Guardrails
-    "CheckResult",
-    "Guardrails",
-    "ResponseValidator",
-    "ValidationResult",
-    "StepEnforcer",
-    "StepCheck",
-    "ErrorTracker",
-    "Nudge",
-    # Context
-    "ContextManager",
-    "CompactEvent",
-    "CompactStrategy",
     "NoCompact",
-    "TieredCompact",
-    "SlidingWindowCompact",
-    "HardwareProfile",
-    "detect_hardware",
-    # Prompts
-    "build_tool_prompt",
-    "extract_tool_call",
-    "rescue_tool_call",
-    "retry_nudge",
-    "step_nudge",
-    # Tools
-    "RESPOND_TOOL_NAME",
-    "respond_spec",
-    "respond_tool",
-    # Clients
-    "ChunkType",
-    "LLMClient",
-    "StreamChunk",
-    "TokenUsage",
-    "LlamafileClient",
+    "Nudge",
     "OllamaClient",
     "OpenAICompatClient",
-    "VLLMClient",
-    "AnthropicClient",
-    "apply_sampling_defaults",
+    "PrerequisiteError",
     # Proxy & Server
     "ProxyServer",
-    "BudgetMode",
+    "ReasoningReplay",
+    "ResponseValidator",
     "ServerManager",
-    # Errors
-    "ForgeError",
-    "ToolCallError",
-    "ToolExecutionError",
+    "SlidingWindowCompact",
+    "SlotWorker",
+    "StepCheck",
     "StepEnforcementError",
-    "PrerequisiteError",
-    "MaxIterationsError",
-    "BudgetResolutionError",
+    "StepEnforcer",
+    "StepTracker",
+    "StreamChunk",
+    "TextResponse",
+    "TieredCompact",
+    "TokenUsage",
+    "ToolCall",
+    "ToolCallError",
+    "ToolCallInfo",
+    "ToolDef",
+    "ToolExecutionError",
+    "ToolSpec",
+    "VLLMClient",
+    "ValidationResult",
+    "Workflow",
+    "WorkflowRunner",
+    "apply_sampling_defaults",
+    # Prompts
+    "build_tool_prompt",
+    "detect_hardware",
+    "extract_tool_call",
+    "filter_openai_reasoning_messages",
+    "rescue_tool_call",
+    "respond_spec",
+    "respond_tool",
+    "retry_nudge",
+    "run_inference",
+    "step_nudge",
+    "validate_reasoning_replay",
 ]

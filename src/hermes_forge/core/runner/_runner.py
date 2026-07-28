@@ -174,7 +174,7 @@ class WorkflowRunner:
 
             # ── Call the LLM ──────────────────────────────────────────
             try:
-                response_data, token_usage = await self._llm_client.send(
+                response_data, _token_usage = await self._llm_client.send(
                     oai_messages, oai_tools
                 )
             except Exception as exc:

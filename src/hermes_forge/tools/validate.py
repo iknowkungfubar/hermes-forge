@@ -5,12 +5,12 @@ from __future__ import annotations
 import json
 from typing import Any
 
-import mcp.types as types
+from mcp import types
 
 
 def _validate_tool_call(args: dict) -> Any:
-    from hermes_forge.guardrails.response_validator import ResponseValidator
     from hermes_forge.core.workflow import ToolCall
+    from hermes_forge.guardrails.response_validator import ResponseValidator
 
     tool_name = args.get("tool_name", "")
     arguments = args.get("arguments", {})

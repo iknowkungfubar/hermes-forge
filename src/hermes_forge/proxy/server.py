@@ -159,7 +159,7 @@ class HTTPServer:
 
             return method, path, headers, body
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("Request read timeout")
             return None
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
@@ -186,7 +186,7 @@ class HTTPServer:
             f"Access-Control-Allow-Origin: *\r\n"
             f"Connection: close\r\n"
             f"\r\n"
-        ).encode("utf-8") + body
+        ).encode() + body
 
         try:
             writer.write(response)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
@@ -145,7 +145,7 @@ class TextResponse:
     content: str
 
 
-LLMResponse = Union[list[ToolCall], TextResponse]
+LLMResponse = list[ToolCall] | TextResponse
 
 
 @dataclass

@@ -1,8 +1,8 @@
 """Tests for architecture refactoring — tools and response modules."""
 
 import json
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -91,7 +91,7 @@ class TestToolHandlers:
         assert text["status"] == "configured"
 
     def test_mcp_server_imports(self):
-        from hermes_forge.mcp_server import TOOLS, HANDLERS
+        from hermes_forge.mcp_server import HANDLERS, TOOLS
 
         assert len(TOOLS) == 5
         assert "forge_validate_tool_call" in HANDLERS

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import subprocess
 import time
 from enum import Enum
 from pathlib import Path
@@ -43,7 +42,7 @@ class ServerManager:
         self.backend = backend
         self.port = port
         self.models_dir = Path(models_dir) if models_dir else None
-        self._process: subprocess.Popen | None = None
+        self._process: asyncio.subprocess.Process | None = None
         self._context_length: int | None = None
 
     async def start(
@@ -75,31 +74,45 @@ class ServerManager:
     async def _start_ollama(self, model_name: str | Path | None) -> None:
         """Ensure Ollama is running and the model is available."""
         logger.info(f"Starting Ollama with model: {model_name}")
-        result = subprocess.run(
-            ["ollama", "list"],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        result_proc = await asyncio.create_subprocess_exec(
+            "ollama",
+            "list",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        if result.returncode != 0:
+        try:
+            stdout, _ = await asyncio.wait_for(result_proc.communicate(), timeout=30)
+        except TimeoutError:
+            result_proc.kill()
+            raise TimeoutError("ollama list timed out")
+        result_text = stdout.decode() if stdout else ""
+
+        if result_proc.returncode != 0:
             logger.warning("Ollama not running. Attempting to start...")
-            subprocess.Popen(
-                ["ollama", "serve"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+            await asyncio.create_subprocess_exec(
+                "ollama",
+                "serve",
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
             )
             await asyncio.sleep(3)
 
         if model_name:
             model_str = str(model_name)
-            if model_str not in result.stdout:
+            if model_str not in result_text:
                 logger.info(f"Pulling model {model_str}...")
-                subprocess.run(
-                    ["ollama", "pull", model_str],
-                    capture_output=True,
-                    text=True,
-                    timeout=300,
+                pull_proc = await asyncio.create_subprocess_exec(
+                    "ollama",
+                    "pull",
+                    model_str,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
                 )
+                try:
+                    await asyncio.wait_for(pull_proc.communicate(), timeout=300)
+                except TimeoutError:
+                    pull_proc.kill()
+                    raise TimeoutError(f"ollama pull {model_str} timed out")
 
     async def _start_llama_server(
         self,
@@ -133,10 +146,10 @@ class ServerManager:
             cmd.extend(extra_flags)
 
         logger.info(f"Starting llama-server: {' '.join(cmd)}")
-        self._process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        self._process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
         )
         await self._wait_healthy(timeout=180)
 
@@ -162,10 +175,10 @@ class ServerManager:
             cmd.extend(["--max-model-len", str(ctx_override)])
 
         logger.info(f"Starting vLLM: {' '.join(cmd)}")
-        self._process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        self._process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
         )
         await self._wait_healthy(timeout=300)
 
@@ -177,8 +190,8 @@ class ServerManager:
         if self._process:
             self._process.terminate()
             try:
-                self._process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
+                await asyncio.wait_for(self._process.wait(), timeout=10)
+            except TimeoutError:
                 self._process.kill()
             self._process = None
             await asyncio.sleep(3)  # Let VRAM clear
@@ -217,7 +230,7 @@ class ServerManager:
                     else:
                         return  # Ollama — assume healthy
                 except Exception:
-                    pass
+                    logger.debug("Backend not ready yet", exc_info=True)
                 await asyncio.sleep(2)
 
         raise TimeoutError(f"Backend did not become healthy within {timeout}s")

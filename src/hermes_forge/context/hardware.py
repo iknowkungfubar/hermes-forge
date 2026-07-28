@@ -59,6 +59,7 @@ def _detect_nvidia() -> HardwareProfile | None:
             capture_output=True,
             text=True,
             timeout=10,
+            check=False,
         )
         if result.returncode != 0:
             return None
@@ -101,6 +102,7 @@ def _detect_amd() -> HardwareProfile | None:
             capture_output=True,
             text=True,
             timeout=10,
+            check=False,
         )
         if result.returncode != 0:
             return None
@@ -122,6 +124,7 @@ def _detect_amd() -> HardwareProfile | None:
                 ["rocm-smi", "--showmeminfo", "vram"],
                 capture_output=True,
                 text=True,
+                check=False,
                 timeout=10,
             )
             if smi.returncode == 0:

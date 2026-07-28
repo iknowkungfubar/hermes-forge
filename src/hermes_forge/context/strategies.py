@@ -183,18 +183,20 @@ class TieredCompact(CompactStrategy):
             if 2 <= i < eligible_end:
                 if self._is_type(msg, *drop_types):
                     continue
-                if self._is_type(msg, MessageType.TOOL_RESULT.value):
-                    if len(msg.content) > self.TRUNCATE_CHARS:
-                        from copy import deepcopy
+                elif (
+                    self._is_type(msg, MessageType.TOOL_RESULT.value)
+                    and len(msg.content) > self.TRUNCATE_CHARS
+                ):
+                    from copy import deepcopy
 
-                        truncated = deepcopy(msg)
-                        truncated.content = (
-                            msg.content[: self.TRUNCATE_CHARS]
-                            + f"\n[Truncated — {len(msg.content) - self.TRUNCATE_CHARS} chars removed]"
-                        )
-                        result.append(truncated)
-                        continue
-            result.append(msg)
+                    truncated = deepcopy(msg)
+                    truncated.content = (
+                        msg.content[: self.TRUNCATE_CHARS]
+                        + f"\n[Truncated — {len(msg.content) - self.TRUNCATE_CHARS} chars removed]"
+                    )
+                    result.append(truncated)
+                    continue
+                result.append(msg)
         return result
 
     def _phase2(self, messages: list, eligible_end: int) -> list:
@@ -208,9 +210,8 @@ class TieredCompact(CompactStrategy):
             MessageType.TOOL_RESULT.value,
         }
         for i, msg in enumerate(messages):
-            if 2 <= i < eligible_end:
-                if self._is_type(msg, *drop_types):
-                    continue
+            if 2 <= i < eligible_end and self._is_type(msg, *drop_types):
+                continue
             result.append(msg)
         return result
 
@@ -227,8 +228,7 @@ class TieredCompact(CompactStrategy):
             MessageType.TEXT_RESPONSE.value,
         }
         for i, msg in enumerate(messages):
-            if 2 <= i < eligible_end:
-                if self._is_type(msg, *drop_types):
-                    continue
+            if 2 <= i < eligible_end and self._is_type(msg, *drop_types):
+                continue
             result.append(msg)
         return result

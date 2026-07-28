@@ -19,7 +19,7 @@ from typing import Any
 
 from hermes_forge.clients.base import LLMClient, TokenUsage
 from hermes_forge.context.manager import ContextManager
-from hermes_forge.core.workflow import ToolCall, TextResponse
+from hermes_forge.core.workflow import TextResponse, ToolCall
 from hermes_forge.guardrails.response_validator import ResponseValidator
 from hermes_forge.proxy.convert import (
     build_tool_specs,

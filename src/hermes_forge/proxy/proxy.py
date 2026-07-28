@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import re
 import signal
 import sys
 import threading
@@ -29,8 +30,6 @@ from hermes_forge.context.manager import ContextManager
 from hermes_forge.context.strategies import TieredCompact
 from hermes_forge.proxy.handler import RequestHandler
 from hermes_forge.proxy.server import HTTPServer
-
-import re
 
 # Blocked hosts/URLs for SSRF prevention — never forward requests to these
 _SSRF_BLOCKLIST = re.compile(

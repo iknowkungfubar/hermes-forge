@@ -3,6 +3,13 @@ Advanced tests covering edge cases, proxy, clients, converters, and security.
 """
 
 import pytest
+
+from hermes_forge.context.manager import ContextManager
+from hermes_forge.context.strategies import (
+    NoCompact,
+    SlidingWindowCompact,
+    TieredCompact,
+)
 from hermes_forge.core.messages import (
     Message,
     MessageMeta,
@@ -12,39 +19,32 @@ from hermes_forge.core.messages import (
 from hermes_forge.core.workflow import (
     TextResponse,
     ToolCall,
-    ToolSpec,
     ToolDef,
+    ToolSpec,
     Workflow,
 )
+from hermes_forge.errors import (
+    BackendError,
+    BudgetResolutionError,
+    ForgeError,
+    MaxIterationsError,
+    PrerequisiteError,
+    StepEnforcementError,
+    ToolCallError,
+    ToolExecutionError,
+)
+from hermes_forge.guardrails.guardrails import Guardrails
 from hermes_forge.guardrails.response_validator import (
     ResponseValidator,
     rescue_tool_call,
 )
 from hermes_forge.guardrails.step_enforcer import StepEnforcer
-from hermes_forge.guardrails.guardrails import Guardrails
-from hermes_forge.context.manager import ContextManager
-from hermes_forge.context.strategies import (
-    NoCompact,
-    SlidingWindowCompact,
-    TieredCompact,
-)
 from hermes_forge.proxy.convert import (
-    openai_to_forge,
-    forge_to_openai,
-    extract_tool_calls,
     build_tool_specs,
+    extract_tool_calls,
+    forge_to_openai,
+    openai_to_forge,
 )
-from hermes_forge.errors import (
-    ForgeError,
-    ToolCallError,
-    ToolExecutionError,
-    StepEnforcementError,
-    PrerequisiteError,
-    MaxIterationsError,
-    BudgetResolutionError,
-    BackendError,
-)
-
 
 # ═══════════════════════════════════════════════════════════════
 # EDGE CASE TESTS — Rescue Parsing
@@ -228,7 +228,7 @@ class TestCompactionEdgeCases:
                 )
             )
 
-        result, phase = strategy.compact(messages, 50)
+        _result, phase = strategy.compact(messages, 50)
         assert phase >= 1, "Should compact with tight budget"
 
     def test_tiered_phase_3_deep(self):
@@ -254,7 +254,7 @@ class TestCompactionEdgeCases:
                 )
             )
 
-        result, phase = strategy.compact(messages, 1000)
+        _result, phase = strategy.compact(messages, 1000)
         assert phase == 3, "Should reach phase 3 aggressive compaction"
 
     def test_sliding_window_compact(self):
@@ -272,7 +272,7 @@ class TestCompactionEdgeCases:
                 )
             )
 
-        result, phase = strategy.compact(messages, 500)
+        result, _phase = strategy.compact(messages, 500)
         # Should compact: keep system + user + recent iterations
         assert 2 <= len(result) < len(messages)
 

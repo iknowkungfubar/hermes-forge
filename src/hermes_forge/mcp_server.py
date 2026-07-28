@@ -11,10 +11,10 @@ import json
 import logging
 from typing import Any
 
-import mcp.types as types
+from mcp import types
 from mcp.server.lowlevel import Server
 
-from hermes_forge.tools import validate, rescue, step_order, budget, workflow
+from hermes_forge.tools import budget, rescue, step_order, validate, workflow
 
 logger = logging.getLogger("forge.mcp")
 
@@ -163,8 +163,8 @@ def serve_stdio() -> None:
     async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         return await handle_call(name, arguments)
 
-    from mcp.server.stdio import stdio_server
     import anyio
+    from mcp.server.stdio import stdio_server
 
     async def _run():
         async with stdio_server() as (read, write):
@@ -190,10 +190,10 @@ def serve_sse(host: str = "127.0.0.1", port: int = 8089) -> None:
     async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         return await handle_call(name, arguments)
 
+    import uvicorn
     from mcp.server.sse import SseServerTransport
     from starlette.applications import Starlette
     from starlette.routing import Mount, Route
-    import uvicorn
 
     sse = SseServerTransport("/messages/")
 

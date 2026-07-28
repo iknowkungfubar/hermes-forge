@@ -15,8 +15,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from hermes_forge.core.workflow import Workflow
 from hermes_forge.core.messages import Message
+from hermes_forge.core.workflow import Workflow
 
 
 @dataclass(order=True)
@@ -78,24 +78,20 @@ class SlotWorker:
                 if (
                     self._current_task is not None
                     and priority < self._current_task.priority
-                ):
-                    if self._cancel_event:
-                        self._cancel_event.set()
+                ) and self._cancel_event:
+                    self._cancel_event.set()
 
                 self._current_task = task
                 cancel_event = asyncio.Event()
                 self._cancel_event = cancel_event
 
-                result = await self._run_fn(
+                await self._run_fn(
                     workflow=workflow,
                     messages=messages,
                     cancel_event=cancel_event,
                 )
-                if not future.done():
-                    future.set_result(result)
             except Exception as e:
-                if not future.done():
-                    future.set_exception(e)
+                future.set_exception(e)
             finally:
                 if self._current_task is task:
                     self._current_task = None

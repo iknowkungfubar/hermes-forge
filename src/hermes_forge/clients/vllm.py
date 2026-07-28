@@ -42,7 +42,7 @@ class VLLMClient(LLMClient):
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         **kwargs: Any,
-    ) -> tuple[list[dict[str, Any]], "TokenUsage"]:
+    ) -> tuple[list[dict[str, Any]], TokenUsage]:
         if self._served_name is None:
             await self._discover_served_model()
         return await self._openai.send(messages, tools, **kwargs)
