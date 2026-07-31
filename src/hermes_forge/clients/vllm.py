@@ -78,7 +78,7 @@ class VLLMClient(LLMClient):
                         name = models[0].get("id")
                         if name:
                             return name
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.debug("Could not discover vLLM model: %s", e)
         return None
 

@@ -84,7 +84,7 @@ class HTTPServer:
 
             await self._send_json_response(writer, response)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Connection error: %s", e)
             try:
                 await self._send_json_response(
@@ -97,12 +97,12 @@ class HTTPServer:
                     },
                     status=500,
                 )
-            except Exception:
+            except Exception:  # noqa: BLE001,S110
                 pass
         finally:
             try:
                 writer.close()
-            except Exception:
+            except Exception:  # noqa: BLE001,S110
                 pass
 
     async def _read_request(
@@ -191,7 +191,7 @@ class HTTPServer:
         try:
             writer.write(response)
             await writer.drain()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error("Failed to send response: %s", e)
 
     @staticmethod

@@ -90,7 +90,7 @@ class SlotWorker:
                     messages=messages,
                     cancel_event=cancel_event,
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 future.set_exception(e)
             finally:
                 if self._current_task is task:
@@ -116,7 +116,7 @@ class SlotWorker:
                     await task.coro
             except asyncio.CancelledError:
                 break
-            except Exception:
+            except Exception:  # noqa: BLE001,S112
                 continue
 
     async def shutdown(self) -> None:

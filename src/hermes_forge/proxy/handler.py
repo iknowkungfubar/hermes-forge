@@ -188,7 +188,7 @@ class RequestHandler:
                             text_content = cleaned
                     return self._build_text_response(text_content, model, usage)
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(
                     "Backend error (attempt %d/%d): %s",
                     retries + 1,

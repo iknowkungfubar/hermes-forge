@@ -168,7 +168,7 @@ class OpenAICompatClient(LLMClient):
                 return models[0].get(
                     "max_model_len", models[0].get("max_context_length")
                 )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.debug("Could not get context length: %s", e)
         return None
 
